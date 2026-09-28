@@ -35,7 +35,7 @@ def run() -> None:
 
     js_api = JSAPI()
     window = webview.create_window(
-        "tool_ui" if env != "development" else "webview_dev",
+        "Automation_tool" if env != "development" else "webview_dev",
         _ui_target(env),
         js_api=js_api,
         easy_drag=False,
