@@ -1,0 +1,7 @@
+.venv/
+
+data/output/
+*.pyc
+.DS_Store
+
+data

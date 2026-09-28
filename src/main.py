@@ -5,7 +5,7 @@ import subprocess
 import time
 from dotenv import load_dotenv
 import json
-from webview.dom import DOMEventHandler, _dnd_state
+from webview.dom import DOMEventHandler
 # load environment variables from .env file
 if len(sys.argv) > 1:
     env = sys.argv[1]
@@ -24,12 +24,9 @@ class JSAPI:
         self._window = window
 
     def select_file(self):
-        """打开文件选择弹窗，返回选中的文件真实绝对路径"""
-        # 支持参数：
-        # webview.OPEN_DIALOG (打开单个/多个文件)
         file_types = (
-            'Excel 文件 (*.xls;*.xlsx)',
-            '所有文件 (*.*)'
+            'Excel files (*.xls;*.xlsx)',
+            'all files (*.*)'
         )
 
         result = self._window.create_file_dialog(
@@ -38,14 +35,11 @@ class JSAPI:
             file_types=file_types
         )
 
-        # result 返回一个元组，如 ('C:\\Users\\xxx\\Documents\\test.pdf',)
         if result and len(result) > 0:
-            return result[0]  # 返回单个路径字符串
+            return result[0]
         return None
 
     # def onDrop(self, event):
-        
-
 
 
 js_api = JSAPI()
