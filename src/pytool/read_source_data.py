@@ -7,8 +7,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 from openpyxl.utils import column_index_from_string
-
-JOINED_HEADER = ["AN", "joined"]
+from pytool.constants import JOINED_HEADER, LEADER_HEADER
 
 
 def to_datetime(value) -> datetime | None:
@@ -34,27 +33,40 @@ def year_month(value) -> tuple[int, int] | None:
     return dt.year, dt.month
 
 
-def find_joined_index(headers: list[str], joined_header: list[str] = JOINED_HEADER) -> int:
-    col_letter, name = joined_header[0], joined_header[1]
-    needle = str(name).strip().lower()
+def header_matches(cell, spec: list) -> bool:
+    text = "" if cell is None else str(cell).strip()
+    if not text:
+        return False
+    name = spec[1]
+    if str(name).strip().lower() == text.lower():
+        return True
+    pattern = spec[2] if len(spec) > 2 else None
+    if pattern is None:
+        return False
+    return bool(pattern.search(text))
+
+
+def find_header_index(headers: list, spec: list) -> int:
+    col_letter = spec[0]
     col_i = column_index_from_string(col_letter) - 1
-    if col_i < len(headers) and str(headers[col_i]).strip().lower() == needle:
+    if col_i < len(headers) and header_matches(headers[col_i], spec):
         return col_i
     for i, header in enumerate(headers):
-        if str(header).strip().lower() == needle:
+        if header_matches(header, spec):
             return i
-    raise ValueError("no Joined column in header row")
+    return -1
 
 
-def read_source_data(path, current_date, prior_date, joined_header=JOINED_HEADER) -> dict:
+def read_source_data(path, current_date, prior_date, joined_header=JOINED_HEADER, leader_header=LEADER_HEADER) -> dict:
     """Open `path`, keep rows whose Joined month matches each date."""
     path = Path(path)
     current_ym = year_month(current_date)
     prior_ym = year_month(prior_date)
-    if current_ym is None or prior_ym is None:
+    if current_ym is None:
         raise ValueError(
-            "current_date and prior_date must be like 2026-01 or 2026-01-02")
-
+            "current_date must be a date or datetime, or a string in YYYY-MM-DD format")
+    if prior_ym is None:
+        prior_ym = (current_ym[0], current_ym[1] - 1)
     wb = load_workbook(path, data_only=True, read_only=True)
     ws = wb.active
     rows = ws.iter_rows(values_only=True)
@@ -64,8 +76,14 @@ def read_source_data(path, current_date, prior_date, joined_header=JOINED_HEADER
         raise ValueError(f"empty workbook: {path}")
 
     headers = ["" if h is None else str(h) for h in header_row]
-    joined_i = find_joined_index(headers, joined_header)
-    joined_name = headers[joined_i]
+    joined_i = find_header_index(headers, joined_header)
+    leader_i = find_header_index(headers, leader_header)
+    if joined_i == -1:
+        wb.close()
+        raise ValueError("no Joined column in header row")
+    if leader_i == -1:
+        wb.close()
+        raise ValueError("no Lead Source column in header row")
 
     current = []
     prior = []
@@ -84,7 +102,8 @@ def read_source_data(path, current_date, prior_date, joined_header=JOINED_HEADER
 
     return {
         "headers": headers,
-        "joined_column": joined_name,
+        "joined_index": joined_i,
+        "leader_index": leader_i,
         "current": current,
         "prior": prior,
     }
