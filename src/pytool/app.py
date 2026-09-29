@@ -1,6 +1,9 @@
 import os
 import sys
 
+if sys.platform == "darwin":
+    os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
+
 import webview
 from dotenv import load_dotenv
 
@@ -40,8 +43,11 @@ def run() -> None:
         js_api=js_api,
         easy_drag=False,
         resizable=True,
+        min_size=(600, 450),
     )
     js_api.set_window(window)
+    if sys.platform == "darwin":
+        webview.settings["OPEN_DEVTOOLS_IN_DEBUG"] = False
     webview.start(debug=(env == "development" and not is_frozen()))
 
 
