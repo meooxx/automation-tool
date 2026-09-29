@@ -29,15 +29,7 @@ function Home() {
 				<Row gutter={8}>
 					<Col sm={12} lg={8}>
 						<Space vertical style={{ width: '100%' }}>
-							<PyUpload onSuccess={handleUploadSuccess}>
-								<Dragger {...props}>
-									<p className="ant-upload-drag-icon">
-										<InboxOutlined />
-									</p>
-									<p className="ant-upload-text">Click this area to upload</p>
-									<p className="ant-upload-hint">Support for a single.</p>
-								</Dragger>
-							</PyUpload>
+							<PyUpload onSuccess={handleUploadSuccess}></PyUpload>
 							<DatePicker style={{ width: '100%' }} picker="month" />
 						</Space>
 					</Col>
