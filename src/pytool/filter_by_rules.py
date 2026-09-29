@@ -85,8 +85,8 @@ def filter_by_rules(source: dict) -> dict:
 
     def split(rows: list) -> dict:
         return {
-            "quadrants": _split_quadrants(rows, resd_i, type_i),
-            "lead_sources": _split_lead_sources(rows, leader_i),
+            **_split_quadrants(rows, resd_i, type_i),
+            **_split_lead_sources(rows, leader_i),
         }
 
     return {

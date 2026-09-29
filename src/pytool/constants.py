@@ -125,7 +125,7 @@ CATEGORY_HEADER = [
         "match": None,
     },
 ]
-LEAD_SOURCE_CATEGORIES = CATEGORY_HEADER[6]
+LEAD_SOURCE_CATEGORIES = CATEGORY_HEADER[6:]
 
 # Match IC, OOC, Direct, Non-direct, and RESD headers for filtering
 IC_MATCH = re.compile(r"(?i)^ic$|^icc$|in-catchment|in catchment")

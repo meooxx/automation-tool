@@ -12,6 +12,7 @@ declare global {
 				bind_drop_event: (selector: string) => Promise<boolean>;
 				unbind_drop_event: (selector: string) => Promise<boolean>;
 				select_file: () => Promise<string | null>;
+				process_file: (curr: string, pre?: string) => Promise<void>;
 			};
 		};
 	}
@@ -33,7 +34,7 @@ function Home() {
 	const handleProcess = () => {
 		startTransition(async () => {
 			await window.pywebview?.api?.process_file(
-				curr?.format('YYYY-MM'),
+				curr!.format('YYYY-MM'),
 				pre?.format('YYYY-MM')
 			);
 		});
