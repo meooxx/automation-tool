@@ -9,6 +9,15 @@ from openpyxl import load_workbook
 from openpyxl.utils import column_index_from_string
 from pytool.constants import JOINED_HEADER, LEADER_HEADER
 
+DATE_FORMATS = (
+    "%m/%d/%Y",
+    "%Y-%m-%d",
+    "%m/%d/%Y %H:%M:%S",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M",
+    "%Y-%m",
+)
+
 
 def to_datetime(value) -> datetime | None:
     if value is None or value == "":
@@ -18,7 +27,7 @@ def to_datetime(value) -> datetime | None:
     if isinstance(value, date):
         return datetime(value.year, value.month, value.day)
     text = str(value).strip()
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d", "%Y-%m"):
+    for fmt in DATE_FORMATS:
         try:
             return datetime.strptime(text, fmt)
         except ValueError:
@@ -90,10 +99,10 @@ def read_source_data(path, current_date, prior_date, joined_header=JOINED_HEADER
     for values in rows:
         if values is None or all(v is None or str(v).strip() == "" for v in values):
             continue
+        row = list(values)
         ym = year_month(values[joined_i] if joined_i < len(values) else None)
         if ym is None:
             continue
-        row = list(values)
         if ym == current_ym:
             current.append(row)
         elif ym == prior_ym:

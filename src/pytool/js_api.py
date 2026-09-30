@@ -26,6 +26,7 @@ class JSAPI:
     def __init__(self):
         self._window = None
         self._file_path = None
+        self._output_dir = None
 
     def set_window(self, window):
         self._window = window
@@ -50,6 +51,16 @@ class JSAPI:
             return result[0]
         return None
 
+    def get_output_dir(self):
+        if self._output_dir:
+            return self._output_dir
+        data = load_settings()
+        outdir = data.get("report_dir")
+        if outdir:
+            self._output_dir = outdir
+            return outdir
+        return Path(self._file_path).parent or None
+
     def save_output_file(self, file_path):
         output_dir = os.path.join(os.path.dirname(file_path))
         os.makedirs(output_dir, exist_ok=True)
@@ -59,14 +70,16 @@ class JSAPI:
         return output_dir
 
     def process_file(self, current_month, prior_month):
-        setting = load_settings()
-        todayStr = datetime.strftime(datetime.now(), '%m.%d.%y')
-        outdir_config = setting.get("report_dir", "")
-        
         source_file = self._file_path
+
+        if (self._file_path is None):
+            raise ValueError("Source file path is not set.")
+        todayStr = datetime.strftime(datetime.now(), '%m.%d.%y')
+        outdir = self.get_output_dir()
+
         if not source_file:
             raise ValueError("Source file path is not set.")
-        outdir_path = Path(outdir_config) if outdir_config else Path(source_file).parent / todayStr
+        outdir_path = outdir / todayStr
         outdir_path.mkdir(parents=True, exist_ok=True)
 
         current_date = datetime.strptime(current_month, "%Y-%m")
@@ -78,25 +91,29 @@ class JSAPI:
         headers = originData["headers"]
 
         _write_workbook(
-            outdir_path / f"MCR-{year}-Channel Performance Direct IC-{todayStr}.xlsx",
+            outdir_path /
+            f"MCR-{year}-Channel Performance Direct IC-{todayStr}.xlsx",
             "Direct IC",
             headers,
             current["direct_ic"],
         )
         _write_workbook(
-            outdir_path / f"MCR-{year}-Channel Performance Direct OCC-{todayStr}.xlsx",
+            outdir_path /
+            f"MCR-{year}-Channel Performance Direct OCC-{todayStr}.xlsx",
             "Direct OOC",
             headers,
             current["direct_ooc"],
         )
         _write_workbook(
-            outdir_path / f"MCR-{year}-Channel Performance NonDirect IC-{todayStr}.xlsx",
+            outdir_path /
+            f"MCR-{year}-Channel Performance NonDirect IC-{todayStr}.xlsx",
             "NonDirect IC",
             headers,
             current["non_direct_ic"],
         )
         _write_workbook(
-            outdir_path / f"MCR-{year}-Channel Performance NonDirect OCC-{todayStr}.xlsx",
+            outdir_path /
+            f"MCR-{year}-Channel Performance NonDirect OCC-{todayStr}.xlsx",
             "NonDirect OOC",
             headers,
             current["non_direct_ooc"],
@@ -109,7 +126,9 @@ class JSAPI:
             prior_month,
             originData["prior"],
             filtered["prior"],
-            headers,
+            filtered["current_mailable"],
+            filtered["prior_mailable"],
+            filtered["new_this_month"],
+            filtered["new_prior_month"],
         )
         return str(report)
-        

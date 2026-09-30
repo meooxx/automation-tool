@@ -15,10 +15,14 @@ RED_FILL = PatternFill("solid", fgColor="FFC7CE")
 QUAD_KEYS = ("direct_ic", "direct_ooc", "non_direct_ic", "non_direct_ooc")
 
 
-def month_counts(rows: list, buckets: dict) -> list:
+def month_counts(
+    new_this_month: int,
+    total_mailable: int,
+    buckets: dict,
+) -> list:
     return [
-        0,
-        len(rows),
+        total_mailable,
+        new_this_month,
         len(buckets["direct_ic"]),
         len(buckets["direct_ooc"]),
         len(buckets["non_direct_ic"]),
@@ -43,14 +47,16 @@ def write_channel_performance(
     # filtered_buckets
     current_buckets: dict,
     prior_month: str | None,
-    # original rows
     prior_rows: list,
-    # filtered_buckets
     prior_buckets: dict,
+    current_mailable: int,
+    prior_mailable: int,
+    new_this_month: int,
+    new_prior_month: int,
     headers=None,
 ) -> Path:
-    current_vals = month_counts(current_rows, current_buckets)
-    prior_vals = month_counts(prior_rows, prior_buckets)
+    current_vals = month_counts(new_this_month, current_mailable, current_buckets)
+    prior_vals = month_counts(new_prior_month, prior_mailable, prior_buckets)
 
     wb = Workbook()
     ws = wb.active
@@ -76,3 +82,4 @@ def write_channel_performance(
             cell.fill = RED_FILL
 
     wb.save(path)
+    return path

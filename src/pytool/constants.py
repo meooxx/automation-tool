@@ -74,7 +74,7 @@ CATEGORY_HEADER = [
         "name": "Other",
         "key": "other",
         "order": 110,
-        "match": re.compile(r"(?i)^other$"),
+        "match": None,
     },
     {
         "name": "FOH",
@@ -127,25 +127,22 @@ CATEGORY_HEADER = [
 ]
 LEAD_SOURCE_CATEGORIES = CATEGORY_HEADER[6:]
 
-# Match IC, OOC, Direct, Non-direct, and RESD headers for filtering
-IC_MATCH = re.compile(r"(?i)^ic$|^icc$|in-catchment|in catchment")
-OOC_MATCH = re.compile(r"(?i)^ooc$|^occ$|out-of-catchment|out of catchment")
-DIRECT_MATCH = re.compile(
-    r"(?i)direct from secondary school|direct from high school|^direct$"
-)
-NON_DIRECT_MATCH = re.compile(
-    r"(?i)non-direct|non direct|nondirect|mature student|college transfer|university transfer"
-)
+# Direct: "direct from high school". Everything else on OH Applicant Type is Non-direct.
+DIRECT_MATCH = re.compile(r"(?i)direct from high school|direct from secondary school")
 
-# match RESD header for filtering
-RESD_HEADER = [
-    "DZ",
-    "Resd Code IRx",
-    re.compile(r"(?i)resd code"),
-]
-# match Applicant Type header for filtering
+# IC vs OOC from Zip (column T). Fill with official catchment FSA prefixes (e.g. "L4N").
+ZIP_HEADER = ["T", "Zip", re.compile(r"(?i)^zip$")]
+IC_POSTAL_PREFIXES = frozenset()
+
 APPLICANT_TYPE_HEADER = [
     "DJ",
     "OH Applicant Type",
     re.compile(r"(?i)applicant type"),
+]
+PROSPECT_ID_HEADER = ["A", "Prospect Id", re.compile(r"(?i)prospect id")]
+GEORGIAN_ID_HEADER = ["CR", "Georgian ID", re.compile(r"(?i)georgian id")]
+UNSUBSCRIBE_HEADERS = [
+    ["AF", "Opted Out", re.compile(r"(?i)^opted out$")],
+    ["AO", "Opted Out of List", re.compile(r"(?i)opted out of list")],
+    ["AA", "Do Not Email", re.compile(r"(?i)^do not email$")],
 ]
