@@ -9,7 +9,7 @@ from pathlib import Path
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "templates" / "Master report sample.xlsx"
 OUT = ROOT / "data" / "master_source_100.xlsx"
 
@@ -27,6 +27,26 @@ LEAD_SOURCES = [
     "Tell Us More",
     "GC Website",
     "int recruitment",
+]
+RESD_IC = ["IC", "ICC", "in-catchment", "in catchment"]
+RESD_OOC = ["OOC", "OCC", "out-of-catchment", "out of catchment"]
+APP_DIRECT = [
+    "Direct from Secondary School",
+    "Direct from High School",
+    "Direct",
+]
+APP_NON_DIRECT = [
+    "Non-Direct",
+    "Non Direct",
+    "nondirect",
+    "Mature Student",
+    "College Transfer",
+    "University Transfer",
+]
+QUAD_VALUES = [
+    (resd, app)
+    for resd in (*RESD_IC, *RESD_OOC)
+    for app in (*APP_DIRECT, *APP_NON_DIRECT)
 ]
 FIRST = [
     "Emma", "Liam", "Noah", "Olivia", "Sophia", "Lucas", "Mason", "Mia",
@@ -67,16 +87,16 @@ AGENTS = ["North Star Agency", "Campus Link", "Direct"]
 LISTS = ["Mailable", "Viewbook 2026", "Event Follow-up"]
 YES_NO = ("Yes", "No")
 SPEC = [
-    ("P101", "Emma", "Wei", "emma@test.com", date(2026, 9, 2), "Career Match", "IC"),
-    ("P102", "Liam", "Park", "liam@test.com", date(2026, 9, 5), "FOH", "IC"),
-    ("P103", "Noah", "Singh", "noah@test.com", date(2026, 9, 12), "AppDay", "OOC"),
-    ("P104", "Olivia", "Chen", "olivia@test.com", date(2026, 9, 8), "Connect W Recr", "IC"),
-    ("P105", "Sophia", "Patel", "sophia@test.com", date(2026, 9, 14), "Auto Web Form", "OOC"),
-    ("P106", "Lucas", "Brown", "lucas@test.com", date(2026, 9, 10), "Career Match", "IC"),
-    ("P107", "Mason", "Nguyen", "mason@test.com", date(2026, 9, 19), "GC Website", "OOC"),
-    ("P108", "Mia", "Garcia", "mia@test.com", date(2026, 9, 22), "Other", "IC"),
-    ("P099", "James", "Kim", "james@test.com", date(2026, 8, 15), "Career Match", "IC"),
-    ("P098", "Ella", "Rossi", "ella@test.com", date(2026, 8, 20), "FOH", "IC"),
+    ("P101", "Emma", "Wei", "emma@test.com", date(2026, 9, 2), "Career Match", "IC", "Direct from Secondary School"),
+    ("P102", "Liam", "Park", "liam@test.com", date(2026, 9, 5), "FOH", "ICC", "Mature Student"),
+    ("P103", "Noah", "Singh", "noah@test.com", date(2026, 9, 12), "AppDay", "OOC", "Direct from High School"),
+    ("P104", "Olivia", "Chen", "olivia@test.com", date(2026, 9, 8), "Connect W Recr", "in catchment", "College Transfer"),
+    ("P105", "Sophia", "Patel", "sophia@test.com", date(2026, 9, 14), "Auto Web Form", "OCC", "Direct"),
+    ("P106", "Lucas", "Brown", "lucas@test.com", date(2026, 9, 10), "Career Match", "out-of-catchment", "Non-Direct"),
+    ("P107", "Mason", "Nguyen", "mason@test.com", date(2026, 9, 19), "GC Website", "in-catchment", "University Transfer"),
+    ("P108", "Mia", "Garcia", "mia@test.com", date(2026, 9, 22), "Other", "out of catchment", "nondirect"),
+    ("P099", "James", "Kim", "james@test.com", date(2026, 8, 15), "Career Match", "IC", "Direct from Secondary School"),
+    ("P098", "Ella", "Rossi", "ella@test.com", date(2026, 8, 20), "FOH", "OOC", "Non Direct"),
 ]
 
 
@@ -92,7 +112,7 @@ def build_people(n: int = 100) -> list[dict]:
     rng = random.Random(26)
     people: list[dict] = []
     for item in SPEC:
-        pid, first, last, email, joined, source, catchment = item
+        pid, first, last, email, joined, source, catchment, applicant_type = item
         people.append(
             {
                 "pid": pid,
@@ -102,6 +122,7 @@ def build_people(n: int = 100) -> list[dict]:
                 "joined": joined,
                 "source": source,
                 "catchment": catchment,
+                "applicant_type": applicant_type,
                 "opt_out": False,
             }
         )
@@ -114,6 +135,7 @@ def build_people(n: int = 100) -> list[dict]:
             continue
         first = FIRST[len(people) % len(FIRST)]
         last = LAST[len(people) % len(LAST)]
+        catchment, applicant_type = QUAD_VALUES[len(people) % len(QUAD_VALUES)]
         people.append(
             {
                 "pid": pid,
@@ -122,7 +144,8 @@ def build_people(n: int = 100) -> list[dict]:
                 "email": f"{first.lower()}.{last.lower()}.{seq}@test.com",
                 "joined": joined_for(len(people)),
                 "source": LEAD_SOURCES[len(people) % len(LEAD_SOURCES)],
-                "catchment": "IC" if len(people) % 3 else "OOC",
+                "catchment": catchment,
+                "applicant_type": applicant_type,
                 "opt_out": rng.random() < 0.06,
             }
         )
@@ -282,7 +305,7 @@ def value_for(header: str, p: dict, i: int, rng: random.Random):
         "Newcomer": yn(i % 6 == 0),
         "Nomination for GNED 1090": yn(i % 14 == 0),
         "Nominee name (if nominating someone else)": f"{FIRST[(i + 4) % len(FIRST)]} {LAST[(i + 4) % len(LAST)]}",
-        "OH Applicant Type": "Domestic",
+        "OH Applicant Type": p["applicant_type"],
         "Permissions Method": "Web form",
         "Personal Email": personal,
         "Phone Extension": str(200 + i),

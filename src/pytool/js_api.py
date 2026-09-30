@@ -9,6 +9,7 @@ from pathlib import Path
 import openpyxl
 
 from pytool.filter_by_rules import filter_by_rules
+from pytool.channel_report import write_channel_performance
 
 
 def _write_workbook(path: Path, title: str, headers: list, rows: list) -> None:
@@ -61,7 +62,7 @@ class JSAPI:
         setting = load_settings()
         todayStr = datetime.strftime(datetime.now(), '%m.%d.%y')
         outdir_config = setting.get("report_dir", "")
-
+        
         source_file = self._file_path
         if not source_file:
             raise ValueError("Source file path is not set.")
@@ -100,3 +101,15 @@ class JSAPI:
             headers,
             current["non_direct_ooc"],
         )
+        report = write_channel_performance(
+            outdir_path / f"MCR-{year}-Channel Performance-{todayStr}.xlsx",
+            current_month,
+            originData["current"],
+            current,
+            prior_month,
+            originData["prior"],
+            filtered["prior"],
+            headers,
+        )
+        return str(report)
+        
