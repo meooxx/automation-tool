@@ -56,7 +56,7 @@ function Home() {
 			<div>
 				{contextHolder}
 				<Row gutter={8}>
-					<Col sm={12} lg={8}>
+					<Col sm={12} lg={12}>
 						<Form
 							labelCol={{ span: 4 }}
 							wrapperCol={{ span: 20 }}
@@ -103,8 +103,9 @@ function Home() {
 							</Form.Item>
 						</Form>
 					</Col>
-					<Col sm={12} lg={8}></Col>
-					<Col sm={12} lg={8}></Col>
+					<Col sm={12} lg={12}>
+					
+					</Col>
 				</Row>
 			</div>
 		</>

@@ -17,7 +17,7 @@ QUAD_KEYS = ("direct_ic", "direct_ooc", "non_direct_ic", "non_direct_ooc")
 
 def month_counts(rows: list, buckets: dict) -> list:
     return [
-        [],
+        0,
         len(rows),
         len(buckets["direct_ic"]),
         len(buckets["direct_ooc"]),
@@ -28,8 +28,8 @@ def month_counts(rows: list, buckets: dict) -> list:
 
 
 def _mom(current, prior):
-    if current is None or prior is None:
-        return ''
+    current = current or 0
+    prior = prior or 0
     if prior == 0:
         return 1.0
     return (current - prior) / prior
@@ -47,6 +47,7 @@ def write_channel_performance(
     prior_rows: list,
     # filtered_buckets
     prior_buckets: dict,
+    headers=None,
 ) -> Path:
     current_vals = month_counts(current_rows, current_buckets)
     prior_vals = month_counts(prior_rows, prior_buckets)
@@ -66,8 +67,6 @@ def write_channel_performance(
     # tint the value based on whether it is positive or negative
     for col, val in enumerate(mom_vals, start=2):
         cell = ws.cell(row=4, column=col)
-        if val == '':
-            continue
         cell.number_format = "0.0%"
         if val > 0:
             cell.font = GREEN_FONT
