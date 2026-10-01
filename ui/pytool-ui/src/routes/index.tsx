@@ -1,14 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import {
-	Card,
-	Row,
-	Col,
-	message,
-	DatePicker,
-	Button,
-	Form,
-} from 'antd';
+import { Card, Row, Col, message, DatePicker, Button, Form } from 'antd';
 import type { CardProps } from 'antd';
 
 import PyUpload from '../components/PyUpload';
@@ -107,6 +99,8 @@ function Home() {
 									style={{ marginTop: '16px' }}
 								>
 									<DatePicker
+										maxDate={dayjs()}
+										minDate={dayjs('2020-01')}
 										defaultValue={dayjs(curr, 'YYYY-MM')}
 										onChange={date => setCurr(date ? date : undefined)}
 										style={{ width: '100%' }}

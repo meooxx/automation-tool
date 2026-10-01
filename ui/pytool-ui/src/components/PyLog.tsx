@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'react';
-import { Listy, Alert, Button } from 'antd';
+import { Listy, Button, Row, Col, Badge } from 'antd';
+import { ExportOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 type Item = {
@@ -7,7 +8,7 @@ type Item = {
 	content?: string;
 	path?: string;
 	timestamp: string;
-	icon: 'success' | 'error' | 'info';
+	icon: 'success' | 'error' | 'processing' | 'default' | 'warning';
 };
 type Action = {
 	type: 'new' | 'clear';
@@ -16,13 +17,13 @@ const reducer = (state: Item[], action: Action) => {
 	switch (action.type) {
 		case 'new':
 			return [
+				...state,
 				{
 					...action,
-					icon: action.icon ? action.icon : 'info',
+					icon: action.icon ? action.icon : 'processing',
 					id: action.id || Math.random().toString(36).substring(2, 9),
 					timestamp: dayjs().format('HH:mm:ss')
-				},
-				...state
+				}
 			];
 
 		case 'clear':
@@ -34,13 +35,13 @@ const reducer = (state: Item[], action: Action) => {
 
 export default function PyLog() {
 	const [logs, dispatch] = useReducer<Item[], [Action]>(reducer, [
-		// {
-		// 	content: 'output dir: /output',
-		// 	timestamp: dayjs().format('HH:mm:ss'),
-		// 	icon: 'success',
-		// 	id: Math.random().toString(36).substring(2, 9),
-		// 	path: '~'
-		// }
+		{
+			content: 'Application ui loaded',
+			timestamp: dayjs().format('HH:mm'),
+			icon: 'success',
+			id: Math.random().toString(36).substring(2, 9)
+			// path: '~'
+		}
 	]);
 	const handleOpen = (path: string) => {
 		window.pywebview?.api?.open_dir(path);
@@ -61,19 +62,39 @@ export default function PyLog() {
 	return (
 		<Listy<Item>
 			itemRender={item => (
-				<Alert
-					title={`log - ${item.timestamp}`}
-					description={item.content}
-					type={item.icon}
-					showIcon={!!item.icon}
-					action={
-						item.path ? (
-							<Button onClick={() => handleOpen(item.path!)} type="primary">
-								open
+				<Row
+					align="top"
+					// className="w-full"
+				>
+					<Col flex="auto">
+						<Badge
+							status={item.icon}
+							text={
+								<span className="text-gray-500">{`${item.timestamp} - ${item.content}`}</span>
+							}
+						></Badge>
+					</Col>
+					<Col span={4}>
+						{item.path && (
+							<Button
+								type="link"
+								size="small"
+								onClick={() => handleOpen(item.path!)}
+							>
+								<ExportOutlined />
 							</Button>
-						) : null
-					}
-				/>
+						)}
+					</Col>
+				</Row>
+				// <Alert
+				// 	title={`log`}
+				// 	description={`${item.timestamp} - ${item.content}`}
+				// 	type={item.icon}
+				// 	showIcon={!!item.icon}
+				// 	action={
+
+				// 	}
+				// />
 			)}
 			virtual
 			items={logs}

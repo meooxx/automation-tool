@@ -1,4 +1,5 @@
-import { Row, Col, Input, Button, Tooltip } from 'antd';
+import { Row, Col, Button, Tooltip, Input } from 'antd';
+import TextArea from 'antd/es/input/TextArea';
 import { useState, useEffect, useImperativeHandle } from 'react';
 
 interface DirPickerProps {
@@ -36,22 +37,18 @@ export default function DirPicker(props: DirPickerProps) {
 	}, []);
 
 	return (
-		<Row gutter={8} align="middle">
-			<Col offset={1}>outdir:</Col>
-			<Col>
-				<Tooltip placement="leftTop" title={dir}>
-					<Input
-						value={dir}
-						readOnly
-						defaultValue="Same as the file by default"
-					/>
-				</Tooltip>
+		<Row gutter={4} align="middle" wrap={false}>
+			<Col flex={1}>Outputdir:</Col>
+			<Col flex={5}>
+				{/* <Tooltip placement="leftTop" title={dir}> */}
+				<TextArea
+					onClick={handleChooseOutdir}
+					value={dir || 'Same as the file by default'}
+					readOnly
+				/>
+				{/* </Tooltip> */}
 			</Col>
-			<Col>
-				<Button type="primary" onClick={handleChooseOutdir}>
-					change
-				</Button>
-			</Col>
+			<Col flex={1}></Col>
 		</Row>
 	);
 }
