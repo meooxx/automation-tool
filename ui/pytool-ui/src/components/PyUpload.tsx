@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { InboxOutlined } from '@ant-design/icons';
 import { Upload } from 'antd';
 import type { UploadProps, UploadFile } from 'antd/es/upload/interface';
@@ -17,6 +17,14 @@ export default function PyUpload(p: {
 			setFileList([{ uid: '-1', name: path, status: 'done', url: path }]);
 		}
 	};
+	useEffect(() => {
+		window.pywebview?.api?.get_file_path().then(path => {
+			if (path) {
+				// p.onSuccess?.(path);
+				setFileList([{ uid: '-1', name: path, status: 'done', url: path }]);
+			}
+		});
+	}, []);
 	const props: UploadProps = {
 		listType: 'picture',
 		name: 'file',

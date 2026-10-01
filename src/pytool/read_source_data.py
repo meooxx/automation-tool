@@ -66,7 +66,14 @@ def find_header_index(headers: list, spec: list) -> int:
     return -1
 
 
-def read_source_data(path, current_date, prior_date, joined_header=JOINED_HEADER, leader_header=LEADER_HEADER) -> dict:
+def read_source_data(
+    path,
+    current_date,
+    prior_date,
+    joined_header=JOINED_HEADER,
+    leader_header=LEADER_HEADER,
+    on_error=None,
+) -> dict:
     """Open `path`, keep rows whose Joined month matches each date."""
     path = Path(path)
     current_ym = year_month(current_date)
@@ -96,17 +103,30 @@ def read_source_data(path, current_date, prior_date, joined_header=JOINED_HEADER
 
     current = []
     prior = []
-    for values in rows:
-        if values is None or all(v is None or str(v).strip() == "" for v in values):
+    for excel_row, values in enumerate(rows, start=2):
+        try:
+            if values is None or all(v is None or str(v).strip() == "" for v in values):
+                continue
+            row = list(values)
+            joined = values[joined_i] if joined_i < len(values) else None
+            ym = year_month(joined)
+            if ym is None:
+                if on_error:
+                    on_error("joined", excel_row, row, f"cannot parse Joined: {joined!r}")
+                continue
+            if ym == current_ym:
+                current.append(row)
+            elif ym == prior_ym:
+                prior.append(row)
+        except Exception as e:
+            if on_error:
+                on_error(
+                    "read",
+                    excel_row,
+                    list(values) if values else None,
+                    f"{type(e).__name__}: {e}",
+                )
             continue
-        row = list(values)
-        ym = year_month(values[joined_i] if joined_i < len(values) else None)
-        if ym is None:
-            continue
-        if ym == current_ym:
-            current.append(row)
-        elif ym == prior_ym:
-            prior.append(row)
     wb.close()
 
     return {
