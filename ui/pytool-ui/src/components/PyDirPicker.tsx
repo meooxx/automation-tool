@@ -1,5 +1,4 @@
 import { Row, Col, Button, Tooltip, Input } from 'antd';
-import TextArea from 'antd/es/input/TextArea';
 import { useState, useEffect, useImperativeHandle } from 'react';
 
 interface DirPickerProps {
@@ -41,7 +40,10 @@ export default function DirPicker(props: DirPickerProps) {
 			<Col flex={1}>Outputdir:</Col>
 			<Col flex={5}>
 				{/* <Tooltip placement="leftTop" title={dir}> */}
-				<TextArea
+				<Input.TextArea
+					autoSize={{
+						maxRows: 3
+					}}
 					onClick={handleChooseOutdir}
 					value={dir || 'Same as the file by default'}
 					readOnly
