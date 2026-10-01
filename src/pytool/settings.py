@@ -21,7 +21,7 @@ def load_settings() -> dict:
 
 def save_settings(data: dict) -> None:
     path = settings_file()
-
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
     return True
