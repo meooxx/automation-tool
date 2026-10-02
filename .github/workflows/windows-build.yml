@@ -3,8 +3,9 @@ name: Build Windows application
 on:
   push:
     branches:
-      - main
       - dev
+    tags:
+      - 'v*.*.*'
   pull_request:
   workflow_dispatch:
 
@@ -17,15 +18,15 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: yarn
@@ -60,11 +61,11 @@ jobs:
 
       - name: Create distributable archive
         shell: pwsh
-        run: Compress-Archive -Path dist/pytool -DestinationPath dist/pytool-windows-x64.zip
+        run: Compress-Archive -Path dist/pytool -DestinationPath "dist/pytool-windows-x64-${{ github.ref_name }}.zip"
 
       - name: Upload Windows package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
-          name: pytool-windows-x64
-          path: dist/pytool-windows-x64.zip
+          name: pytool-windows-x64-${{ github.ref_name }}
+          path: dist/pytool-windows-x64-${{ github.ref_name }}.zip
           if-no-files-found: error
