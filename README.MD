@@ -74,3 +74,88 @@ dist\pytool\pytool.exe
 
 Node.js, Yarn, and the Python build dependencies are only required to build
 the application; they are not required on the end user's computer.
+
+The application stores settings next to the executable:
+
+```text
+<application directory>\config\settings.json
+```
+
+Source development uses the repository `config\settings.json` as well. The
+application directory must be writable by the current user; if an output
+directory is not writable, the application reports an error and asks the user
+to choose another directory.
+
+### Quick start from a Windows source checkout
+
+Open PowerShell in the repository root:
+
+```powershell
+cd C:\path\to\automation-tool
+```
+
+Create the virtual environment and install Python dependencies:
+
+```powershell
+# real installed python version
+# py -3.11, py -3.14 ....
+py -3.14 -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Install the frontend dependencies and build the SSG frontend. Use the
+explicit `.cmd` commands on managed computers where PowerShell blocks
+`npm.ps1` or `yarn.ps1`:
+
+```powershell
+corepack.cmd enable
+corepack.cmd prepare yarn@stable --activate
+cd ui\pytool-ui
+yarn.cmd install
+yarn.cmd build
+cd ..\..
+```
+
+Run the source application:
+
+```powershell
+$env:PYTHONPATH = "$PWD\src"
+.venv\Scripts\python.exe -m pytool
+```
+
+The source application uses the frontend URL configured by `UI_URL` (or
+`http://localhost:3000` by default when using the development environment).
+For a production-style local run, build the frontend first and start the
+Python application without the `development` argument.
+
+### Build and run the Windows package
+
+From the repository root, after installing the dependencies:
+
+```powershell
+.venv\Scripts\python.exe scripts\build_package.py
+```
+
+The complete one-folder package is created at:
+
+```text
+dist\pytool\
+├── pytool.exe
+└── _internal\
+```
+
+Run it with:
+
+```powershell
+dist\pytool\pytool.exe
+```
+
+Keep the complete `dist\pytool` directory together. Do not copy only
+`pytool.exe`; the `_internal` directory contains the Python runtime, pywebview
+dependencies, frontend files, and other required resources.
+
+If the computer reports that `npm.ps1` or `yarn.ps1` cannot be loaded because
+script execution is disabled, use `npm.cmd` or `yarn.cmd` explicitly. This is
+a PowerShell policy issue, not a project error. WebView2 Runtime is normally
+available on Windows 11 and many Windows 10 systems, but the target computer
+must have it installed for the packaged desktop application.

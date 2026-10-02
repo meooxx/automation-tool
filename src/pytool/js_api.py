@@ -16,6 +16,7 @@ from pytool.paths import app_root
 from pytool.read_source_data import read_source_data
 from pytool.settings import get_log_path, load_settings, save_settings
 from pytool.event import ui_ready_event
+from pytool.push_logs import SentToBrowser
 logger = logging.getLogger("pytool")
 
 
@@ -52,11 +53,17 @@ def _write_workbook(path: Path, title: str, headers: list, rows: list) -> None:
 class JSAPI:
     def __init__(self):
         self._window = None
+        self._logs = None
         self._file_path = None
         self._output_dir = None
 
     def set_window(self, window):
         self._window = window
+        self._logs = SentToBrowser(window)
+
+    def _push_log(self, message: str, path: str = "", icon: str = "success") -> None:
+        if self._logs is not None:
+            self._logs.pushMessage(message, path, icon)
 
     def select_file_impl(self, filetype="OPEN"):
         switcher = {
@@ -141,36 +148,31 @@ class JSAPI:
 
     def process_file(self, current_month, prior_month):
         source_file = self._file_path
-
-        if (self._file_path is None):
-            raise ValueError("Source file path is not set.")
         todayStr = datetime.strftime(datetime.now(), '%m.%d.%y')
-        outdir = self.get_output_dir()
-
-        if not source_file:
-            raise ValueError("Source file path is not set.")
-        outdir_path = Path(outdir) / todayStr
+        step = "validate input"
+        if self._logs is not None:
+            self._logs.clear()
+        self._push_log("Starting report processing", icon="processing")
         try:
+            if source_file is None:
+                raise ValueError("Source file path is not set.")
+            outdir = self.get_output_dir()
+            if not outdir:
+                raise ValueError("Output directory is not set.")
+            outdir_path = Path(outdir) / todayStr
+            step = "prepare output directory"
             _ensure_writable_directory(outdir)
             outdir_path.mkdir(parents=True, exist_ok=True)
-        except OSError as exc:
-            raise PermissionError(
-                f"Cannot write output to: {outdir}. "
-                "Choose a folder where you have write permission."
-            ) from exc
+            current_date = datetime.strptime(current_month, "%Y-%m")
+            prior_date = datetime.strptime(prior_month, "%Y-%m")
 
-        current_date = datetime.strptime(current_month, "%Y-%m")
-        prior_date = datetime.strptime(prior_month, "%Y-%m")
-        step = "start"
+            def on_row_error(err_step, row_no, row, err):
+                try:
+                    data = json.dumps(row, default=str, ensure_ascii=False)
+                except Exception:
+                    data = str(row)
+                logger.error("[%s] row %s: %s | %s", err_step, row_no, err, data)
 
-        def on_row_error(err_step, row_no, row, err):
-            try:
-                data = json.dumps(row, default=str, ensure_ascii=False)
-            except Exception:
-                data = str(row)
-            logger.error("[%s] row %s: %s | %s", err_step, row_no, err, data)
-
-        try:
             step = "read source"
             originData = read_source_data(
                 source_file,
@@ -193,6 +195,7 @@ class JSAPI:
                 headers,
                 current["direct_ic"],
             )
+            self._push_log("Finished Direct IC")
             step = "write Direct OOC"
             _write_workbook(
                 outdir_path /
@@ -201,6 +204,7 @@ class JSAPI:
                 headers,
                 current["direct_ooc"],
             )
+            self._push_log("Finished Direct OOC")
             step = "write NonDirect IC"
             _write_workbook(
                 outdir_path /
@@ -209,6 +213,7 @@ class JSAPI:
                 headers,
                 current["non_direct_ic"],
             )
+            self._push_log("Finished NonDirect IC")
             step = "write NonDirect OOC"
             _write_workbook(
                 outdir_path /
@@ -217,6 +222,7 @@ class JSAPI:
                 headers,
                 current["non_direct_ooc"],
             )
+            self._push_log("Finished NonDirect OOC")
             step = "write Channel Performance"
             report = write_channel_performance(
                 outdir_path /
@@ -232,7 +238,17 @@ class JSAPI:
                 filtered["new_this_month"],
                 filtered["new_prior_month"],
             )
+            self._push_log("Finished Channel Performance", str(report))
             return str(report)
+        except OSError as exc:
+            if step == "prepare output directory":
+                logger.exception("Failed at %s", step)
+                raise PermissionError(
+                    f"Cannot write output to: {outdir}. "
+                    "Choose a folder where you have write permission."
+                ) from exc
+            logger.exception("Failed at %s", step)
+            raise
         except Exception:
             logger.exception("Failed at %s", step)
             raise
