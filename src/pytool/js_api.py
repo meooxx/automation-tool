@@ -11,8 +11,9 @@ import webview
 
 from pytool.channel_report import write_channel_performance
 from pytool.filter_by_rules import filter_by_rules
+from pytool.paths import app_root
 from pytool.read_source_data import read_source_data
-from pytool.settings import load_settings, save_settings
+from pytool.settings import get_log_path, load_settings, save_settings
 from pytool.event import ui_ready_event
 logger = logging.getLogger("pytool")
 
@@ -81,6 +82,9 @@ class JSAPI:
             return outdir
         return str(Path(self._file_path).parent) if self._file_path else None
 
+    def get_log_path(self):
+        return str(get_log_path())
+
     def save_output_file(self, file_path):
         output_dir = os.path.join(os.path.dirname(file_path))
         os.makedirs(output_dir, exist_ok=True)
@@ -93,14 +97,23 @@ class JSAPI:
         ui_ready_event.set()
 
     def open_dir(self, path: str):
-        print(path, Path(path).expanduser())
-        if Path(path).expanduser().exists() and Path(path).expanduser().is_dir():
-            print(f"Opening directory: {path}")
+        self._open_path(path, expect_dir=True)
 
-            if sys.platform == "darwin":
-                subprocess.call(["open", Path(path).expanduser()])
-            elif sys.platform == "win32":
-                os.startfile(Path(path).expanduser())
+    def open_path(self, path: str):
+        self._open_path(path)
+
+    def _open_path(self, path: str, expect_dir: bool = False):
+        target = Path(path).expanduser()
+        if not target.exists():
+            raise FileNotFoundError(f"Path does not exist: {target}")
+        if expect_dir and not target.is_dir():
+            raise NotADirectoryError(f"Path is not a directory: {target}")
+        if sys.platform == "darwin":
+            subprocess.run(["open", str(target)], check=True)
+        elif sys.platform == "win32":
+            os.startfile(str(target))
+        else:
+            subprocess.run(["xdg-open", str(target)], check=True)
 
     def process_file(self, current_month, prior_month):
         source_file = self._file_path

@@ -25,3 +25,10 @@ def save_settings(data: dict) -> None:
     with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
     return True
+
+
+def get_log_path() -> str:
+    log_path = app_root() / "logs" / "errors.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.touch(exist_ok=True)
+    return log_path

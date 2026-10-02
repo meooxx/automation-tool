@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { Card, Row, Col, message, DatePicker, Button, Form } from 'antd';
+import { Card, Row, Col, message, DatePicker, Button, Form, Flex } from 'antd';
 import type { CardProps } from 'antd';
 
 import PyUpload from '../components/PyUpload';
@@ -8,7 +8,7 @@ import PyLog from '../components/PyLog';
 import { useState, useEffect, useTransition, useRef } from 'react';
 import dayjs from 'dayjs';
 import DirPicker from '../components/PyDirPicker';
-
+import LogDir from '../components/LogDir';
 export const Route = createFileRoute('/')({ component: Home });
 
 declare global {
@@ -24,6 +24,8 @@ declare global {
 				process_file: (curr: string, pre: string) => Promise<void>;
 				ready: () => Promise<void>;
 				open_dir: (path: string) => Promise<void>;
+				open_path: (path: string) => Promise<void>;
+				get_log_path: () => Promise<string | null>;
 				get_output_dir: () => Promise<string>;
 			};
 		};
@@ -137,17 +139,21 @@ function Home() {
 					<Col sm={12} lg={12}>
 						<Card
 							actions={[
-								<DirPicker
-									ref={dirPickerRef}
-									onSuccess={dir => {
-										messageApi.success(`Output dir: ${dir}`);
-									}}
-									onError={e => {
-										messageApi.error(
-											e instanceof Error ? e.message : String(e)
-										);
-									}}
-								/>
+								<Flex vertical gap={4}>
+									<DirPicker
+										ref={dirPickerRef}
+										onSuccess={dir => {
+											messageApi.success(`Output dir: ${dir}`);
+										}}
+										onError={e => {
+											messageApi.error(
+												e instanceof Error ? e.message : String(e)
+											);
+										}}
+									/>
+
+									<LogDir />
+								</Flex>
 							]}
 							title="Run Logs"
 							styles={cardStyles}

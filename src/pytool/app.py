@@ -8,6 +8,7 @@ from pytool.event import ui_ready_event
 if sys.platform == "darwin":
     os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
 
+from pytool.settings import get_log_path
 import webview
 from dotenv import load_dotenv
 
@@ -20,11 +21,11 @@ logger = logging.getLogger("pytool")
 def setup_logging() -> None:
     if logger.handlers:
         return
-    log_dir = app_root() / "logs"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    handler = logging.FileHandler(log_dir / "errors.log", encoding="utf-8")
+    log_path = get_log_path()
+    handler = logging.FileHandler(log_path, encoding="utf-8")
     handler.setFormatter(logging.Formatter(
-        "%(asctime)s %(levelname)s: %(message)s"))
+        "%(asctime)s %(levelname)s %(pathname)s:%(lineno)d "
+        "%(funcName)s: %(message)s"))
     logger.setLevel(logging.ERROR)
     logger.addHandler(handler)
     logger.propagate = False

@@ -1,4 +1,4 @@
-import { Row, Col, Button, Tooltip, Input } from 'antd';
+import { Row, Col, Input } from 'antd';
 import { useState, useEffect, useImperativeHandle } from 'react';
 
 interface DirPickerProps {
@@ -37,7 +37,7 @@ export default function DirPicker(props: DirPickerProps) {
 
 	return (
 		<Row gutter={4} align="middle" wrap={false}>
-			<Col flex={1}>Outputdir:</Col>
+			<Col flex={1}>dir:</Col>
 			<Col flex={5}>
 				{/* <Tooltip placement="leftTop" title={dir}> */}
 				<Input.TextArea
