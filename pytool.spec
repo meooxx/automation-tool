@@ -1,10 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
 from pathlib import Path
+import sys
 
 from PyInstaller.utils.hooks import collect_all
 
 ROOT = Path(SPECPATH)
 UI_DIST = ROOT / "ui" / "pytool-ui" / "dist"
+WINDOWS_ICON = ROOT / "assets" / "pytool.ico"
 
 datas = []
 binaries = []
@@ -42,11 +44,7 @@ a = Analysis(
 
 pyz = PYZ(a.pure)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    [],
-    exclude_binaries=True,
+exe_options = dict(
     name="pytool",
     debug=False,
     bootloader_ignore_signals=False,
@@ -54,6 +52,16 @@ exe = EXE(
     upx=True,
     console=False,
     disable_windowed_traceback=False,
+)
+if sys.platform == "win32" and WINDOWS_ICON.is_file():
+    exe_options["icon"] = str(WINDOWS_ICON)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    **exe_options,
 )
 
 coll = COLLECT(
