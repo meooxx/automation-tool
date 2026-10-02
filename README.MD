@@ -60,7 +60,7 @@ corepack enable
 corepack prepare yarn@stable --activate
 
 cd ui\pytool-ui
-yarn install
+yarn install # or yarn.cmd
 cd ..\..
 
 .venv\Scripts\python.exe scripts\build_package.py
