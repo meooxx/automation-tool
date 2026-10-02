@@ -159,3 +159,27 @@ script execution is disabled, use `npm.cmd` or `yarn.cmd` explicitly. This is
 a PowerShell policy issue, not a project error. WebView2 Runtime is normally
 available on Windows 11 and many Windows 10 systems, but the target computer
 must have it installed for the packaged desktop application.
+
+## Windows release process
+
+Pushes to `dev` create a test Artifact. Version tags create both the Windows
+Artifact and a GitHub Release with the ZIP attached.
+
+Create a release from the branch you want to publish:
+
+```bash
+git switch dev
+git pull
+git tag -a v0.1.0 -m "Release v0.1.0"
+git push origin v0.1.0
+```
+
+Tags must use the `vMAJOR.MINOR.PATCH` format, for example `v0.1.0`.
+GitHub Actions then builds the Windows package and publishes:
+
+```text
+pytool-windows-x64-v0.1.0.zip
+```
+
+The release is created only after the Windows build and package verification
+steps succeed. If the build fails, no release is published.
