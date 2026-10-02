@@ -23,4 +23,6 @@ def resource_dir() -> Path:
 
 
 def ui_index() -> Path:
-    return resource_dir() / "ui" / "dist" / "index.html"
+    if is_frozen():
+        return resource_dir() / "ui" / "dist" / "client" / "index.html"
+    return app_root() / "ui" / "pytool-ui" / "dist" / "client" / "index.html"

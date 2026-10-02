@@ -1,12 +1,12 @@
 import re
 
 # Constants for filtering source data
-JOINED_HEADER = ["AN", "joined", re.compile(r"(?i)joined")]
+JOINED_HEADER = ["AN", "joined", re.compile(r"(?i)^joined$")]
 # match Lead Source header for filtering
 LEADER_HEADER = [
     "DC",
     "Lead Source - Most Recent",
-    re.compile(r"(?i)lead source.*most recent"),
+    re.compile(r"(?i)^lead\s+source.*most\s+recent$"),
 ]
 # match Lead Source categories for filtering
 CATEGORY_HEADER = [
@@ -44,31 +44,33 @@ CATEGORY_HEADER = [
         "name": "Career Match",
         "key": "careerMatch",
         "order": 60,
-        "match": re.compile(r"(?i)career match|careermatch"),
+        "match": re.compile(r"(?i)^(?:career match|careermatch)$"),
     },
     {
         "name": "Connect W Recr",
         "key": "connectWRecr",
         "order": 70,
-        "match": re.compile(r"(?i)connect w recr|connect w/ recr|connect with recruiter"),
+        "match": re.compile(
+            r"(?i)^(?:connect w recr|connect w/ recr|connect with recruiter)$"
+        ),
     },
     {
         "name": "Recruitment events",
         "key": "recruitmentEvents",
         "order": 80,
-        "match": re.compile(r"(?i)recruitment events|recruitment event"),
+        "match": re.compile(r"(?i)^recruitment events?$"),
     },
     {
         "name": "JOML",
         "key": "joml",
         "order": 90,
-        "match": re.compile(r"(?i)joml"),
+        "match": re.compile(r"(?i)^joml$"),
     },
     {
         "name": "Still time to apply",
         "key": "stillTimeToApply",
         "order": 100,
-        "match": re.compile(r"(?i)still time to apply"),
+        "match": re.compile(r"(?i)^still time to apply$"),
     },
     {
         "name": "Other",
@@ -80,43 +82,45 @@ CATEGORY_HEADER = [
         "name": "FOH",
         "key": "foh",
         "order": 120,
-        "match": re.compile(r"(?i)foh|fall open house"),
+        "match": re.compile(r"(?i)^(?:foh|fall open house)$"),
     },
     {
         "name": "AppDay",
         "key": "appDay",
         "order": 130,
-        "match": re.compile(r"(?i)appday|app day|application day"),
+        "match": re.compile(r"(?i)^(?:appday|app day|application day)$"),
     },
     {
         "name": "Auto Web Form",
         "key": "autoWebForm",
         "order": 140,
-        "match": re.compile(r"(?i)auto web form|web form"),
+        "match": re.compile(r"(?i)^(?:auto web form|web form)$"),
     },
     {
         "name": "SOH",
         "key": "soh",
         "order": 150,
-        "match": re.compile(r"(?i)soh|spring open house"),
+        "match": re.compile(r"(?i)^(?:soh|spring open house)$"),
     },
     {
         "name": "Tell Us More",
         "key": "tellUsMore",
         "order": 160,
-        "match": re.compile(r"(?i)tell us more"),
+        "match": re.compile(r"(?i)^tell us more$"),
     },
     {
         "name": "GC Website",
         "key": "gcWebsite",
         "order": 170,
-        "match": re.compile(r"(?i)gc website|georgian college website"),
+        "match": re.compile(r"(?i)^(?:gc website|georgian college website)$"),
     },
     {
         "name": "int recruitment",
         "key": "intRecruitment",
         "order": 180,
-        "match": re.compile(r"(?i)int recruitment|intl recruitment|international recruitment"),
+        "match": re.compile(
+            r"(?i)^(?:int recruitment|intl recruitment|international recruitment)$"
+        ),
     },
     {
         "name": "Blank",
@@ -128,7 +132,9 @@ CATEGORY_HEADER = [
 LEAD_SOURCE_CATEGORIES = CATEGORY_HEADER[6:]
 
 # Direct: "direct from high school". Everything else on OH Applicant Type is Non-direct.
-DIRECT_MATCH = re.compile(r"(?i)direct from high school|direct from secondary school")
+DIRECT_MATCH = re.compile(
+    r"(?i)^direct from (?:high|secondary) school$"
+)
 
 # IC vs OOC from Zip (column T). Fill with official catchment FSA prefixes (e.g. "L4N").
 ZIP_HEADER = ["T", "Zip", re.compile(r"(?i)^zip$")]
@@ -137,12 +143,12 @@ IC_POSTAL_PREFIXES = frozenset()
 APPLICANT_TYPE_HEADER = [
     "DJ",
     "OH Applicant Type",
-    re.compile(r"(?i)applicant type"),
+    re.compile(r"(?i)\bapplicant\s+type\b"),
 ]
-PROSPECT_ID_HEADER = ["A", "Prospect Id", re.compile(r"(?i)prospect id")]
-GEORGIAN_ID_HEADER = ["CR", "Georgian ID", re.compile(r"(?i)georgian id")]
+PROSPECT_ID_HEADER = ["A", "Prospect Id", re.compile(r"(?i)\bprospect\s+id\b")]
+GEORGIAN_ID_HEADER = ["CR", "Georgian ID", re.compile(r"(?i)\bgeorgian\s+id\b")]
 UNSUBSCRIBE_HEADERS = [
     ["AF", "Opted Out", re.compile(r"(?i)^opted out$")],
-    ["AO", "Opted Out of List", re.compile(r"(?i)opted out of list")],
+    ["AO", "Opted Out of List", re.compile(r"(?i)^opted out of list$")],
     ["AA", "Do Not Email", re.compile(r"(?i)^do not email$")],
 ]

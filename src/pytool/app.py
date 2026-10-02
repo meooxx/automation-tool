@@ -14,8 +14,10 @@ from dotenv import load_dotenv
 
 from pytool.js_api import JSAPI
 from pytool.paths import app_root, is_frozen, resource_dir, ui_index
+from pytool.static_server import StaticServer
 
 logger = logging.getLogger("pytool")
+UI_READY_TIMEOUT_SECONDS = 10
 
 
 def setup_logging() -> None:
@@ -56,16 +58,28 @@ def _ui_target(env: str) -> str:
     if env == "development" and not is_frozen():
         url = os.getenv("UI_URL", "http://localhost:3000")
         return url
+    return ""
+
+
+def _start_ui_server() -> StaticServer:
     index = ui_index()
     if not index.is_file():
         raise FileNotFoundError(
-            f"UI build not found: {index}. Run the frontend build before packaging."
+            f"UI build not found: {index}. "
+            "Run the frontend build before packaging."
         )
-    return str(index)
+    server = StaticServer(index.parent)
+    server.start()
+    return server
 
 
 def main_logic(window) -> None:
-    ui_ready_event.wait()
+    if not ui_ready_event.wait(timeout=UI_READY_TIMEOUT_SECONDS):
+        logger.error(
+            "UI did not signal ready within %s seconds; skipping initial log message",
+            UI_READY_TIMEOUT_SECONDS,
+        )
+        return
     sent_to_browser = SentToBrowser(window)
     sent_to_browser.pushMessage(message="App initialized")
 
@@ -77,24 +91,34 @@ def run() -> None:
         load_dotenv(dotenv_path=resource_dir() / f".env.{env}")
 
     js_api = JSAPI()
-    window = webview.create_window(
+    server = None
+    try:
+        if env == "development" and not is_frozen():
+            target = _ui_target(env)
+        else:
+            server = _start_ui_server()
+            target = server.url
 
-        "Automation_tool" if env != "development" else "webview_dev",
-        _ui_target(env),
-        js_api=js_api,
-        easy_drag=False,
-        resizable=True,
-        min_size=(600, 450),
-    )
+        window = webview.create_window(
+            "Automation_tool" if env != "development" else "webview_dev",
+            target,
+            js_api=js_api,
+            easy_drag=False,
+            resizable=True,
+            min_size=(600, 450),
+        )
 
-    js_api.set_window(window)
-    if sys.platform == "darwin":
-        webview.settings["OPEN_DEVTOOLS_IN_DEBUG"] = False
-    webview.start(
-        func=main_logic,
-        args=(window,),
-        debug=(
-            env == "development" and not is_frozen()))
+        js_api.set_window(window)
+        if sys.platform == "darwin":
+            webview.settings["OPEN_DEVTOOLS_IN_DEBUG"] = False
+        webview.start(
+            func=main_logic,
+            args=(window,),
+            debug=(
+                env == "development" and not is_frozen()))
+    finally:
+        if server is not None:
+            server.stop()
 
 
 if __name__ == "__main__":
