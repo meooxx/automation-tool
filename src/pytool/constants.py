@@ -44,101 +44,116 @@ CATEGORY_HEADER = [
         "name": "Career Match",
         "key": "careerMatch",
         "order": 60,
-        "match": re.compile(r"(?i)^(?:career match|careermatch)$"),
+        "aliases": {"career match", "careermatch"},
     },
     {
         "name": "Connect W Recr",
         "key": "connectWRecr",
         "order": 70,
-        "match": re.compile(
-            r"(?i)^(?:connect w recr|connect w/ recr|connect with recruiter)$"
-        ),
+        "aliases": {
+            "connect w recr",
+            "connect w/ recr",
+            "connect with recruiter",
+        },
     },
     {
         "name": "Recruitment events",
         "key": "recruitmentEvents",
         "order": 80,
-        "match": re.compile(r"(?i)^recruitment events?$"),
+        "aliases": {"recruitment event", "recruitment events"},
     },
     {
         "name": "JOML",
         "key": "joml",
         "order": 90,
-        "match": re.compile(r"(?i)^joml$"),
+        "aliases": {"joml"},
     },
     {
         "name": "Still time to apply",
         "key": "stillTimeToApply",
         "order": 100,
-        "match": re.compile(r"(?i)^still time to apply$"),
+        "aliases": {"still time to apply"},
     },
     {
         "name": "Other",
         "key": "other",
         "order": 110,
-        "match": None,
+        "aliases": set(),
     },
     {
         "name": "FOH",
         "key": "foh",
         "order": 120,
-        "match": re.compile(r"(?i)^(?:foh|fall open house)$"),
+        "aliases": {"foh", "fall open house"},
     },
     {
         "name": "AppDay",
         "key": "appDay",
         "order": 130,
-        "match": re.compile(r"(?i)^(?:appday|app day|application day)$"),
+        "aliases": {"appday", "app day", "application day"},
     },
     {
         "name": "Auto Web Form",
         "key": "autoWebForm",
         "order": 140,
-        "match": re.compile(r"(?i)^(?:auto web form|web form)$"),
+        "aliases": {"auto web form", "web form"},
     },
     {
         "name": "SOH",
         "key": "soh",
         "order": 150,
-        "match": re.compile(r"(?i)^(?:soh|spring open house)$"),
+        "aliases": {"soh", "spring open house"},
     },
     {
         "name": "Tell Us More",
         "key": "tellUsMore",
         "order": 160,
-        "match": re.compile(r"(?i)^tell us more$"),
+        "aliases": {"tell us more"},
     },
     {
         "name": "GC Website",
         "key": "gcWebsite",
         "order": 170,
-        "match": re.compile(r"(?i)^(?:gc website|georgian college website)$"),
+        "aliases": {"gc website", "georgian college website"},
     },
     {
         "name": "int recruitment",
         "key": "intRecruitment",
         "order": 180,
-        "match": re.compile(
-            r"(?i)^(?:int recruitment|intl recruitment|international recruitment)$"
-        ),
+        "aliases": {
+            "int recruitment",
+            "intl recruitment",
+            "international recruitment",
+        },
     },
     {
         "name": "Blank",
         "key": "blank",
         "order": 190,
-        "match": None,
+        "aliases": set(),
     },
 ]
 LEAD_SOURCE_CATEGORIES = CATEGORY_HEADER[6:]
 
-# Direct: "direct from high school". Everything else on OH Applicant Type is Non-direct.
-DIRECT_MATCH = re.compile(
-    r"(?i)^direct from (?:high|secondary) school$"
-)
+# Direct: these exact normalized values. Everything else is Non-direct.
+DIRECT_VALUES = {
+    "direct",
+    "direct from high school",
+    "direct from secondary school",
+}
 
-# IC vs OOC from Zip (column T). Fill with official catchment FSA prefixes (e.g. "L4N").
+# IC vs OOC from Zip (column T). Provisional FSA list pending client confirmation.
 ZIP_HEADER = ["T", "Zip", re.compile(r"(?i)^zip$")]
-IC_POSTAL_PREFIXES = frozenset()
+IC_POSTAL_PREFIXES = frozenset({
+    "L0G", "L0K", "L0L", "L0M", "L0N",
+    "L3V", "L3Z", "L4M", "L4N", "L4R",
+    "L9J", "L9M", "L9R", "L9S", "L9V",
+    "L9W", "L9X", "L9Y", "L9Z",
+    "N0C", "N0G", "N0H", "N2Z",
+    "N4K", "N4L", "N4N",
+    "P0A", "P0B", "P0C", "P0E",
+    "P1H", "P1L", "P1P",
+})
 
 APPLICANT_TYPE_HEADER = [
     "DJ",

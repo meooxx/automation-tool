@@ -11,8 +11,7 @@ import openpyxl
 import webview
 
 from pytool.channel_report import write_channel_performance
-from pytool.filter_by_rules import filter_by_rules
-from pytool.paths import app_root
+from pytool.filter_by_rules import filter_by_rules, normalize_value
 from pytool.read_source_data import read_source_data
 from pytool.settings import get_log_path, load_settings, save_settings
 from pytool.event import ui_ready_event
@@ -51,6 +50,33 @@ def _write_workbook(path: Path, title: str, headers: list, rows: list) -> None:
     wb.save(path)
 
 
+def _log_unmatched_lead_sources(
+    unmatched: dict,
+    current_month: str,
+    prior_month: str,
+) -> int:
+    sections = (
+        (current_month, unmatched.get("current", {})),
+        (prior_month, unmatched.get("prior", {})),
+    )
+    total = sum(sum(counts.values()) for _, counts in sections)
+    for month, counts in sections:
+        for raw, count in sorted(
+            counts.items(),
+            key=lambda item: item[0].casefold(),
+        ):
+            logger.warning(
+                "Unmatched Lead Source [%s]: raw=%r, normalized=%r, "
+                "reason=no configured alias matched, classified_as=Other "
+                "(%s rows)",
+                month,
+                raw,
+                normalize_value(raw),
+                count,
+            )
+    return total
+
+
 class JSAPI:
     def __init__(self):
         self._window = None
@@ -77,7 +103,7 @@ class JSAPI:
         }
         if dialog_type == webview.FileDialog.OPEN:
             kwargs["file_types"] = (
-                "Excel files (*.xls;*.xlsx)",
+                "Excel files (*.xlsx)",
             )
         result = self._window.create_file_dialog(dialog_type, **kwargs)
         if result and len(result) > 0:
@@ -201,7 +227,7 @@ class JSAPI:
             step = "write Direct OOC"
             _write_workbook(
                 outdir_path /
-                f"MCR-{year}-Channel Performance Direct OCC-{todayStr}.xlsx",
+                f"MCR-{year}-Channel Performance Direct OOC-{todayStr}.xlsx",
                 "Direct OOC",
                 headers,
                 current["direct_ooc"],
@@ -219,7 +245,7 @@ class JSAPI:
             step = "write NonDirect OOC"
             _write_workbook(
                 outdir_path /
-                f"MCR-{year}-Channel Performance NonDirect OCC-{todayStr}.xlsx",
+                f"MCR-{year}-Channel Performance NonDirect OOC-{todayStr}.xlsx",
                 "NonDirect OOC",
                 headers,
                 current["non_direct_ooc"],
@@ -241,6 +267,16 @@ class JSAPI:
                 filtered["new_prior_month"],
             )
             self._push_log("Finished Channel Performance")
+            unmatched_count = _log_unmatched_lead_sources(
+                filtered["unmatched_lead_sources"],
+                current_month,
+                prior_month,
+            )
+            if unmatched_count:
+                self._push_log(
+                    f"{unmatched_count} unmatched Lead Source values logged",
+                    icon="warning",
+                )
             self._push_log("Finished processing report",
                            icon="success", path=str(outdir_path))
             return str(report)

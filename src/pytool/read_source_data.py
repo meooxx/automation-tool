@@ -82,7 +82,8 @@ def read_source_data(
         raise ValueError(
             "current_date must be a date or datetime, or a string in YYYY-MM-DD format")
     if prior_ym is None:
-        prior_ym = (current_ym[0], current_ym[1] - 1)
+        raise ValueError(
+            "prior_date must be a date or datetime, or a supported date string")
     wb = load_workbook(path, data_only=True, read_only=True)
     ws = wb.active
     rows = ws.iter_rows(values_only=True)

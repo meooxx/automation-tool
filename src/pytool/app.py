@@ -27,7 +27,7 @@ def setup_logging() -> None:
     handler.setFormatter(logging.Formatter(
         "%(asctime)s %(levelname)s %(pathname)s:%(lineno)d "
         "%(funcName)s: %(message)s"))
-    logger.setLevel(logging.ERROR)
+    logger.setLevel(logging.WARNING)
     logger.addHandler(handler)
     logger.propagate = False
 
@@ -104,7 +104,7 @@ def run() -> None:
             js_api=js_api,
             easy_drag=False,
             resizable=True,
-            min_size=(600, 450),
+            min_size=(800, 600),
         )
 
         js_api.set_window(window)
