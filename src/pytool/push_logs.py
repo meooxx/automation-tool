@@ -10,7 +10,6 @@ class SentToBrowser:
         self.window.evaluate_js(
             "window['CALL_METHODS'].get('push_log')("
             f"{json.dumps({'type': 'new', 'content': message, 'path': path, 'icon': icon})})"
-            ")"
         )
 
     def clear(self):

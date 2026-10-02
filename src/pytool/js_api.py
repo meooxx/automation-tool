@@ -23,7 +23,8 @@ logger = logging.getLogger("pytool")
 def _ensure_writable_directory(path: str) -> Path:
     directory = Path(path).expanduser()
     if not directory.is_dir():
-        raise NotADirectoryError(f"Output directory does not exist: {directory}")
+        raise NotADirectoryError(
+            f"Output directory does not exist: {directory}")
     try:
         with tempfile.NamedTemporaryFile(
             dir=directory,
@@ -171,7 +172,8 @@ class JSAPI:
                     data = json.dumps(row, default=str, ensure_ascii=False)
                 except Exception:
                     data = str(row)
-                logger.error("[%s] row %s: %s | %s", err_step, row_no, err, data)
+                logger.error("[%s] row %s: %s | %s",
+                             err_step, row_no, err, data)
 
             step = "read source"
             originData = read_source_data(
@@ -238,7 +240,9 @@ class JSAPI:
                 filtered["new_this_month"],
                 filtered["new_prior_month"],
             )
-            self._push_log("Finished Channel Performance", str(report))
+            self._push_log("Finished Channel Performance")
+            self._push_log("Finished processing report",
+                           icon="success", path=str(outdir_path))
             return str(report)
         except OSError as exc:
             if step == "prepare output directory":
