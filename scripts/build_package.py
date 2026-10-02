@@ -29,7 +29,7 @@ def run(command: list[str], cwd: Path) -> None:
 
 
 def main() -> None:
-    yarn = shutil.which("yarn")
+    yarn = shutil.which("yarn.cmd")
     if yarn is None:
         raise RuntimeError("yarn is required to build the frontend before packaging.")
 
