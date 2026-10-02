@@ -19,10 +19,14 @@ export default function DirPicker(props: DirPickerProps) {
 		[]
 	);
 	const handleChooseOutdir = async () => {
-		const dir = await window.pywebview?.api?.select_dir(true);
-		if (dir) {
-			setPath(dir);
-			props.onSuccess?.(dir);
+		try {
+			const dir = await window.pywebview?.api?.select_dir(true);
+			if (dir) {
+				setPath(dir);
+				props.onSuccess?.(dir);
+			}
+		} catch (e) {
+			props.onError?.(e instanceof Error ? e : new Error(String(e)));
 		}
 	};
 	const getOutDir = async () => {
@@ -54,4 +58,3 @@ export default function DirPicker(props: DirPickerProps) {
 		</Row>
 	);
 }
-

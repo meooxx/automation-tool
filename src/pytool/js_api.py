@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 import openpyxl
 import webview
@@ -16,6 +17,26 @@ from pytool.read_source_data import read_source_data
 from pytool.settings import get_log_path, load_settings, save_settings
 from pytool.event import ui_ready_event
 logger = logging.getLogger("pytool")
+
+
+def _ensure_writable_directory(path: str) -> Path:
+    directory = Path(path).expanduser()
+    if not directory.is_dir():
+        raise NotADirectoryError(f"Output directory does not exist: {directory}")
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=directory,
+            prefix=".automation-tool-write-test-",
+            delete=False,
+        ) as probe:
+            probe_path = Path(probe.name)
+        probe_path.unlink()
+    except OSError as exc:
+        raise PermissionError(
+            f"Output directory is not writable: {directory}. "
+            "Choose a folder where you have write permission."
+        ) from exc
+    return directory
 
 
 def _write_workbook(path: Path, title: str, headers: list, rows: list) -> None:
@@ -58,7 +79,10 @@ class JSAPI:
         return None
 
     def select_dir(self, savedir=False):
-        self._output_dir = self.select_file_impl("DIR")
+        selected_dir = self.select_file_impl("DIR")
+        if selected_dir:
+            _ensure_writable_directory(selected_dir)
+        self._output_dir = selected_dir
         if savedir:
             data = load_settings()
             data["report_dir"] = self._output_dir
@@ -83,7 +107,7 @@ class JSAPI:
         return str(Path(self._file_path).parent) if self._file_path else None
 
     def get_log_path(self):
-        return str(get_log_path())
+        return str(get_log_path().parent())
 
     def save_output_file(self, file_path):
         output_dir = os.path.join(os.path.dirname(file_path))
@@ -126,7 +150,14 @@ class JSAPI:
         if not source_file:
             raise ValueError("Source file path is not set.")
         outdir_path = Path(outdir) / todayStr
-        outdir_path.mkdir(parents=True, exist_ok=True)
+        try:
+            _ensure_writable_directory(outdir)
+            outdir_path.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise PermissionError(
+                f"Cannot write output to: {outdir}. "
+                "Choose a folder where you have write permission."
+            ) from exc
 
         current_date = datetime.strptime(current_month, "%Y-%m")
         prior_date = datetime.strptime(prior_month, "%Y-%m")

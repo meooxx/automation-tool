@@ -1,9 +1,13 @@
 import json
+import logging
+from pathlib import Path
 
 from pytool.paths import app_root
 
+logger = logging.getLogger("pytool")
 
-def settings_file():
+
+def settings_file() -> Path:
     return app_root() / "config" / "settings.json"
 
 
@@ -14,8 +18,12 @@ def load_settings() -> dict:
     try:
         with path.open("r", encoding="utf-8") as f:
             data = json.load(f)
-        return data if isinstance(data, dict) else {}
+        if not isinstance(data, dict):
+            logger.error("Settings file is not a JSON object: %s", path)
+            return {}
+        return data
     except (OSError, json.JSONDecodeError):
+        logger.exception("Unable to read settings file: %s", path)
         return {}
 
 
