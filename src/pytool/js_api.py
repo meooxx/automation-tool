@@ -114,7 +114,7 @@ class JSAPI:
         return str(Path(self._file_path).parent) if self._file_path else None
 
     def get_log_path(self):
-        return str(get_log_path().parent())
+        return str(get_log_path().parent)
 
     def save_output_file(self, file_path):
         output_dir = os.path.join(os.path.dirname(file_path))

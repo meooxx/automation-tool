@@ -35,7 +35,7 @@ def save_settings(data: dict) -> None:
     return True
 
 
-def get_log_path() -> str:
+def get_log_path() -> Path:
     log_path = app_root() / "errors.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.touch(exist_ok=True)
