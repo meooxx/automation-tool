@@ -78,7 +78,7 @@ CATEGORY_HEADER = [
         "name": "Other",
         "key": "other",
         "order": 110,
-        "aliases": set(),
+        "aliases": {"other"},
     },
     {
         "name": "FOH",

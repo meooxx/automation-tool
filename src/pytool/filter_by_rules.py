@@ -107,14 +107,19 @@ def mailable_count(rows: list, headers: list, on_error=None) -> int:
     return unique_count(mailable_rows, prospect_id_index)
 
 
-def map_lead_source(raw: str) -> str:
+def classify_lead_source(raw: str) -> tuple[str, bool]:
     text = normalize_value(raw)
     if not text:
-        return "blank"
+        return "blank", True
     for cat in LEAD_SOURCE_CATEGORIES:
         if text in cat.get("aliases", set()):
-            return cat["key"]
-    return "other"
+            return cat["key"], True
+    return "other", False
+
+
+def map_lead_source(raw: str) -> str:
+    key, _ = classify_lead_source(raw)
+    return key
 
 
 def _split_lead_sources(
@@ -127,9 +132,9 @@ def _split_lead_sources(
     for i, row in enumerate(rows, start=1):
         try:
             raw = get_cell(row, leader_i)
-            key = map_lead_source(raw)
+            key, matched = classify_lead_source(raw)
             buckets[key].append(row)
-            if key == "other":
+            if not matched:
                 unmatched[raw] += 1
         except Exception as e:
             if on_error:

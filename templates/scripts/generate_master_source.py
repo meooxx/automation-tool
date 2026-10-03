@@ -19,7 +19,7 @@ LEAD_SOURCES = [
     "Recruitment events",
     "JOML",
     "Still time to apply",
-    "Other",
+    "Legacy Program Inquiry Form",
     "FOH",
     "AppDay",
     "Auto Web Form",
@@ -27,6 +27,7 @@ LEAD_SOURCES = [
     "Tell Us More",
     "GC Website",
     "int recruitment",
+    "",
 ]
 RESD_IC = ["IC", "ICC", "in-catchment", "in catchment"]
 RESD_OOC = ["OOC", "OCC", "out-of-catchment", "out of catchment"]
@@ -94,7 +95,7 @@ SPEC = [
     ("P105", "Sophia", "Patel", "sophia@test.com", date(2026, 9, 14), "Auto Web Form", "OCC", "Direct"),
     ("P106", "Lucas", "Brown", "lucas@test.com", date(2026, 9, 10), "Career Match", "out-of-catchment", "Non-Direct"),
     ("P107", "Mason", "Nguyen", "mason@test.com", date(2026, 9, 19), "GC Website", "in-catchment", "University Transfer"),
-    ("P108", "Mia", "Garcia", "mia@test.com", date(2026, 9, 22), "Other", "out of catchment", "nondirect"),
+    ("P108", "Mia", "Garcia", "mia@test.com", date(2026, 9, 22), "Legacy Department Form", "out of catchment", "nondirect"),
     ("P099", "James", "Kim", "james@test.com", date(2026, 8, 15), "Career Match", "IC", "Direct from Secondary School"),
     ("P098", "Ella", "Rossi", "ella@test.com", date(2026, 8, 20), "FOH", "OOC", "Non Direct"),
 ]
@@ -177,14 +178,15 @@ def value_for(header: str, p: dict, i: int, rng: random.Random):
     advisor = f"advisor{(i % 5) + 1}@georgiancollege.ca"
     hs = HIGH_SCHOOLS[i % len(HIGH_SCHOOLS)]
     yob = 2005 + (i % 6)
-    georgian_id = f"G{2000000 + i}"
+    # Most prospects have no Georgian ID; a small subset has become students.
+    georgian_id = f"G{2000000 + i}" if i % 9 == 0 else ""
     ocas = f"OC{300000 + i}"
     street = f"{100 + i} College Dr"
     opt = p["opt_out"]
-    source = p["source"] or "Other"
+    source = p["source"]
     catchment = p["catchment"]
     medium = ["organic", "paid", "email", "event", "referral"][i % 5]
-    campaign = f"Fall-2026-{source.replace(' ', '')}"
+    campaign = f"Fall-2026-{(source or 'Blank').replace(' ', '')}"
     shirt = SHIRTS[i % len(SHIRTS)]
     guests = (i % 4)
     convocation = date(2026, 6, 12)

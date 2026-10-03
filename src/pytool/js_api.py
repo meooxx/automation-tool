@@ -114,8 +114,9 @@ class JSAPI:
 
     def select_dir(self, savedir=False):
         selected_dir = self.select_file_impl("DIR")
-        if selected_dir:
-            _ensure_writable_directory(selected_dir)
+        if not selected_dir:
+            return None
+        _ensure_writable_directory(selected_dir)
         self._output_dir = selected_dir
         if savedir:
             data = load_settings()
@@ -124,8 +125,10 @@ class JSAPI:
         return self._output_dir
 
     def select_file(self):
-        self._file_path = self.select_file_impl("OPEN")
-        return self._file_path
+        selected_file = self.select_file_impl("OPEN")
+        if selected_file:
+            self._file_path = selected_file
+        return selected_file
 
     def get_file_path(self):
         return self._file_path
@@ -274,7 +277,8 @@ class JSAPI:
             )
             if unmatched_count:
                 self._push_log(
-                    f"{unmatched_count} unmatched Lead Source values logged",
+                    f"{unmatched_count} unmatched Lead Source values; "
+                    "details are in errors.log",
                     icon="warning",
                 )
             self._push_log("Finished processing report",
