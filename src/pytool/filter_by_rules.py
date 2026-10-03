@@ -65,10 +65,14 @@ def unique_count(rows: list, id_i: int) -> int:
     if id_i < 0:
         return len(rows)
     seen: set[str] = set()
-    for i, row in enumerate(rows):
+    blank_count = 0
+    for row in rows:
         pid = get_cell(row, id_i)
-        seen.add(pid if pid else f"row-{i}")
-    return len(seen)
+        if pid:
+            seen.add(pid)
+        else:
+            blank_count += 1
+    return len(seen) + blank_count
 
 
 def mailable_count(rows: list, headers: list, on_error=None) -> int:
