@@ -49,7 +49,10 @@ export default function LogDir() {
 						size="small"
 						icon={<ExportOutlined />}
 						aria-label="Open error log"
-						onClick={() => window.pywebview?.api?.open_path(logPath)}
+						disabled={!logPath}
+						onClick={() => {
+							if (logPath) window.pywebview?.api?.open_path(logPath);
+						}}
 					/>
 				</Col>
 			</Row>

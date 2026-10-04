@@ -74,10 +74,27 @@ def _start_ui_server() -> StaticServer:
 
 def main_logic(window) -> None:
     if not ui_ready_event.wait(timeout=UI_READY_TIMEOUT_SECONDS):
-        logger.error(
-            "UI did not signal ready within %s seconds; skipping initial log message",
-            UI_READY_TIMEOUT_SECONDS,
+        message = (
+            f"The user interface did not start within "
+            f"{UI_READY_TIMEOUT_SECONDS} seconds."
         )
+        logger.error(message)
+        try:
+            window.load_html(
+                f"""
+                <!doctype html>
+                <html>
+                  <body style="font-family: sans-serif; padding: 32px;">
+                    <h2>Unable to start the application</h2>
+                    <p>{message}</p>
+                    <p>Please restart the application. If the problem continues,
+                    check <strong>errors.log</strong> in the application folder.</p>
+                  </body>
+                </html>
+                """
+            )
+        except Exception:
+            logger.exception("Unable to display the UI startup error")
         return
     sent_to_browser = SentToBrowser(window)
     sent_to_browser.pushMessage(message="App initialized")
@@ -85,6 +102,7 @@ def main_logic(window) -> None:
 
 def run() -> None:
     setup_logging()
+    ui_ready_event.clear()
     env = _env_name()
     if not is_frozen():
         load_dotenv(dotenv_path=resource_dir() / f".env.{env}")

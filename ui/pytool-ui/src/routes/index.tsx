@@ -71,9 +71,18 @@ function Home() {
 		}
 	}, [curr]);
 	useEffect(() => {
-		window.pywebview?.api?.ready();
+		const signalReady = () => {
+			window.pywebview?.api?.ready();
+		};
+		if (window.pywebview?.api) {
+			signalReady();
+		}
+		window.addEventListener('pywebviewready', signalReady);
+		return () => {
+			window.removeEventListener('pywebviewready', signalReady);
+		};
 	}, []);
-	const cardStyles: CardProps[styles] = {
+	const cardStyles: CardProps['styles'] = {
 		body: {
 			flexGrow: 1
 		}
