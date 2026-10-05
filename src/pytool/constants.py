@@ -142,16 +142,15 @@ DIRECT_VALUES = {
     "direct from secondary school",
 }
 
-# IC vs OOC from Zip (column T). Provisional FSA list pending client confirmation.
+# IC vs OOC from Zip (column T). Official "Zip begins with" prefixes from client.
 ZIP_HEADER = ["T", "Zip", re.compile(r"(?i)^zip$")]
 IC_POSTAL_PREFIXES = frozenset({
-    "L0G", "L0K", "L0L", "L0M", "L0N",
-    "L3V", "L3Z", "L4M", "L4N", "L4R",
+    "L0E", "L0K", "L0L", "L0M", "L0N",
+    "L3V", "L3Z", "L4M", "L4N",
     "L9J", "L9M", "L9R", "L9S", "L9V",
-    "L9W", "L9X", "L9Y", "L9Z",
-    "N0C", "N0G", "N0H", "N2Z",
-    "N4K", "N4L", "N4N",
-    "P0A", "P0B", "P0C", "P0E",
+    "L9X", "L9Y", "L9Z",
+    "N0C", "N2Z", "N4K", "N4L",
+    "P0A", "P0B", "P0C",
     "P1H", "P1L", "P1P",
 })
 
