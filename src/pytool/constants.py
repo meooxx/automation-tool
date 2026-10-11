@@ -6,7 +6,7 @@ JOINED_HEADER = ["AN", "joined", re.compile(r"(?i)^joined$")]
 LEADER_HEADER = [
     "DC",
     "Lead Source - Most Recent",
-    re.compile(r"(?i)^lead\s+source.*most\s+recent$"),
+    re.compile(r"(?i)^lead\s+source.*$"),
 ]
 # match Lead Source categories for filtering
 CATEGORY_HEADER = [
@@ -133,6 +133,7 @@ CATEGORY_HEADER = [
         "aliases": set(),
     },
 ]
+CORE_CATEGORY_HEADER = CATEGORY_HEADER[:6]
 LEAD_SOURCE_CATEGORIES = CATEGORY_HEADER[6:]
 
 # Direct: these exact normalized values. Everything else is Non-direct.
@@ -161,6 +162,14 @@ APPLICANT_TYPE_HEADER = [
 ]
 PROSPECT_ID_HEADER = ["A", "Prospect Id", re.compile(r"(?i)\bprospect\s+id\b")]
 GEORGIAN_ID_HEADER = ["CR", "Georgian ID", re.compile(r"(?i)\bgeorgian\s+id\b")]
+DECEASED_HEADER = ["CG", "Deceased", re.compile(r"(?i)^deceased$")]
+EMAIL_BOUNCED_HEADER = ["CK", "Email Bounced", re.compile(r"(?i)^email\s+bounced$")]
+EMAIL_OPT_IN_HEADER = ["CL", "Email Opt In", re.compile(r"(?i)^email\s+opt\s+in$")]
+FUTURE_STUDENTS_HEADER = [
+    "EN",
+    "Updates for future students",
+    re.compile(r"(?i)^updates\s+for\s+future\s+students$"),
+]
 UNSUBSCRIBE_HEADERS = [
     ["AF", "Opted Out", re.compile(r"(?i)^opted out$")],
     ["AO", "Opted Out of List", re.compile(r"(?i)^opted out of list$")],

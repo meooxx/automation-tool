@@ -12,7 +12,7 @@ import webview
 
 from pytool.channel_report import write_channel_performance
 from pytool.filter_by_rules import filter_by_rules, normalize_value
-from pytool.read_source_data import read_source_data
+from pytool.read_source_data import list_lead_sources, read_source_data
 from pytool.settings import get_log_path, load_settings, save_settings
 from pytool.event import ui_ready_event
 from pytool.push_logs import SentToBrowser
@@ -77,12 +77,19 @@ def _log_unmatched_lead_sources(
     return total
 
 
+def read_lead_sources(file_path: str) -> list:
+    if not Path(file_path).is_file():
+        raise FileNotFoundError(f"Source file not found: {file_path}")
+    return list_lead_sources(file_path)
+
+
 class JSAPI:
     def __init__(self):
         self._window = None
         self._logs = None
         self._file_path = None
         self._output_dir = None
+        self._selected_sources = None
 
     def set_window(self, window):
         self._window = window
@@ -130,6 +137,16 @@ class JSAPI:
             self._file_path = selected_file
         return selected_file
 
+    def select_file_and_get_lead_sources(self):
+        path = self.select_file()
+        if path:
+            sources = list_lead_sources(path)
+            for source in sources:
+                if "aliases" not in source:
+                    source["aliases"] = [source["text"]]
+            return {"file_path": path, "lead_sources": sources}
+        return None
+
     def get_file_path(self):
         return self._file_path
 
@@ -176,7 +193,36 @@ class JSAPI:
         else:
             subprocess.run(["xdg-open", str(target)], check=True)
 
-    def process_file(self, current_month, prior_month):
+    def list_lead_sources(self):
+        if self._file_path is None:
+            raise ValueError("Source file path is not set.")
+        return list_lead_sources(self._file_path)
+
+    def get_source_headers(self):
+        if self._selected_sources is not None:
+            return self._selected_sources
+        data = load_settings()
+        sources = data.get("source_headers", None)
+        if sources is not None:
+            self._selected_sources = sources
+        return json.dumps(sources or [])
+
+    def save_source_headers(self, sources: str):
+        sources = json.loads(sources) if isinstance(sources, str) else sources
+
+        selected_sources = [{
+            "key": source["key"].strip() if "key" in source else "",
+            "label": source["label"].strip() if "label" in source else "",
+            "value": source["value"].strip() if "value" in source else "",
+            "alias": [alias.strip() for alias in source["alias"]] if "alias" in source and isinstance(source["alias"], list) else "",
+            "columnName": source["columnName"].strip() if "columnName" in source else ""
+        } for source in sources]
+        data = load_settings()
+        data["source_headers"] = selected_sources
+        self._selected_sources = selected_sources
+        save_settings(data)
+
+    def process_file(self, current_month, prior_month, selected_sources=None):
         source_file = self._file_path
         todayStr = datetime.strftime(datetime.now(), '%m.%d.%y')
         step = "validate input"
@@ -213,7 +259,15 @@ class JSAPI:
             )
 
             step = "filter"
-            filtered = filter_by_rules(originData, on_error=on_row_error)
+            if selected_sources is None:
+                selected_sources = [
+                    item["text"] for item in list_lead_sources(source_file)
+                ]
+            filtered = filter_by_rules(
+                originData,
+                on_error=on_row_error,
+                selected_sources=selected_sources,
+            )
             current = filtered["current"]
             year = current_date.year
             headers = originData["headers"]
@@ -268,6 +322,7 @@ class JSAPI:
                 filtered["prior_mailable"],
                 filtered["new_this_month"],
                 filtered["new_prior_month"],
+                lead_categories=filtered["lead_categories"],
             )
             self._push_log("Finished Channel Performance")
             unmatched_count = _log_unmatched_lead_sources(

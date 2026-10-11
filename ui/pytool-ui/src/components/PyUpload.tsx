@@ -7,14 +7,20 @@ const { Dragger } = Upload;
 
 export default function PyUpload(p: {
 	children?: React.ReactNode;
-	onSuccess?: (filePath: string) => void;
+	onSuccess?: (data: {
+		file_path: string;
+		lead_sources: { text: string; aliases: string[] }[];
+	}) => void;
 }) {
 	const [fileList, setFileList] = useState<UploadFile[]>([]);
 	const handleUploadClick = async () => {
-		const path = await window.pywebview?.api?.select_file();
-		if (path) {
-			p.onSuccess?.(path);
-			setFileList([{ uid: '-1', name: path, status: 'done', url: path }]);
+		const data =
+			await window.pywebview?.api?.select_file_and_get_lead_sources();
+		if (data) {
+			p.onSuccess?.(data);
+			setFileList([
+				{ uid: '-1', name: data.file_path, status: 'done', url: data.file_path }
+			]);
 		}
 	};
 	useEffect(() => {
@@ -29,6 +35,7 @@ export default function PyUpload(p: {
 		listType: 'picture',
 		name: 'file',
 		openFileDialogOnClick: false,
+		style: { width: '100%' },
 		beforeUpload() {
 			return Upload.LIST_IGNORE;
 		},
@@ -56,7 +63,6 @@ export default function PyUpload(p: {
 						<InboxOutlined />
 					</p>
 					<p className="ant-upload-text"> Click this area to upload </p>
-					<p className="ant-upload-hint"> Support for a single.</p>
 				</Dragger>
 			</div>
 		</>

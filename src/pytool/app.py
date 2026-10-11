@@ -122,7 +122,7 @@ def run() -> None:
             js_api=js_api,
             easy_drag=False,
             resizable=True,
-            min_size=(800, 600),
+            min_size=(880, 660),
         )
 
         js_api.set_window(window)

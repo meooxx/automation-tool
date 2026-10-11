@@ -1,6 +1,16 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 
-import { Card, Row, Col, message, DatePicker, Button, Form, Flex } from 'antd';
+import {
+	Card,
+	Row,
+	Col,
+	message,
+	DatePicker,
+	Button,
+	Form,
+	Flex,
+	Tooltip
+} from 'antd';
 import type { CardProps } from 'antd';
 
 import PyUpload from '../components/PyUpload';
@@ -9,6 +19,8 @@ import { useState, useEffect, useTransition, useRef } from 'react';
 import dayjs from 'dayjs';
 import DirPicker from '../components/PyDirPicker';
 import LogDir from '../components/LogDir';
+import { SourceSelect, type Source } from '../components/SouceSelect';
+import { InfoCircleOutlined } from '@ant-design/icons/es/icons/index';
 export const Route = createFileRoute('/')({ component: Home });
 
 declare global {
@@ -21,12 +33,25 @@ declare global {
 				select_dir: (savedir?: boolean) => Promise<string | null>;
 				get_file_path: () => Promise<string | null>;
 				select_file: () => Promise<string | null>;
-				process_file: (curr: string, pre: string) => Promise<void>;
+				select_file_and_get_lead_sources: () => Promise<{
+					file_path: string;
+					lead_sources: { key: string; text: string; aliases: string[] }[];
+				} | null>;
+				process_file: (
+					curr: string,
+					pre: string,
+					selected?: string[]
+				) => Promise<void>;
+				list_lead_sources: () => Promise<
+					{ key: string; text: string; aliases: string[] }[]
+				>;
 				ready: () => Promise<void>;
 				open_dir: (path: string) => Promise<void>;
 				open_path: (path: string) => Promise<void>;
 				get_log_path: () => Promise<string | null>;
 				get_output_dir: () => Promise<string>;
+				save_source_headers: (sources: string) => Promise<void>;
+				get_source_headers: () => Promise<Source[]>;
 			};
 		};
 		CALL_METHODS?: Map<string, (a: any) => void>;
@@ -36,18 +61,63 @@ declare global {
 function Home() {
 	const [messageApi, contextHolder] = message.useMessage();
 	const dirPickerRef = useRef<{ updateDir: () => void }>(null);
-	const handleUploadSuccess = (filePath: string): void => {
-		messageApi.success(`Choosed: ${filePath}`);
-		setFilepath(filePath);
+	const handleUploadSuccess = async (data: {
+		file_path: string;
+		lead_sources: { text: string; aliases: string[] }[];
+	}): Promise<void> => {
+		messageApi.success(`Choosed: ${data.file_path}`);
+		setFilepath(data.file_path);
+		const map = new Map<string, Source>();
+		selectedSources.forEach(source => {
+			map.set(source.value, source);
+		});
+		const newSources = data.lead_sources.map(item => {
+			if (map.has(item.text)) {
+				const s = map.get(item.text)!;
+				map.delete(item.text);
+				return s;
+			}
+			return {
+				key: item.text,
+				label: item.text,
+				value: item.text,
+				alias: [item.text],
+				columnName: item.text
+			};
+		});
+		if (map.size > 0) {
+			newSources.push(...Array.from(map.values()));
+		}
+		setLeadSources(newSources);
 		dirPickerRef.current?.updateDir();
 	};
 	const [isPedding, startTransition] = useTransition();
 	const [filepath, setFilepath] = useState<string | null>(null);
+	const [leadSources, setLeadSources] = useState<Source[]>([]);
+	const [selectedSources, setSelectedSources] = useState<Source[]>([]);
 	const [curr, setCurr] = useState<dayjs.Dayjs | undefined>(dayjs());
 	const [pre, setPre] = useState<dayjs.Dayjs | undefined>(
 		dayjs().subtract(1, 'month')
 	);
 	const disabled = curr === null || filepath === null;
+	const handleSelectedSourcesChange = (
+		_: string,
+		options?: Source | Source[]
+	) => {
+		if (!Array.isArray(options)) return;
+		setSelectedSources(
+			options.map(option => ({
+				value: option.value,
+				label: option.label,
+				key: option.key,
+				alias: option.alias,
+				columnName: option.columnName
+			}))
+		);
+	};
+	const handleSaveAdvancedSources = (sources: Source[]) => {
+		setSelectedSources(sources);
+	};
 	const handleProcess = () => {
 		startTransition(async () => {
 			try {
@@ -70,6 +140,22 @@ function Home() {
 			setPre(curr.subtract(1, 'month'));
 		}
 	}, [curr]);
+	useEffect(() => {
+		window.pywebview?.api?.get_source_headers().then((sources: Source[]) => {
+			console.log(sources)
+			if (sources?.length > 0) {
+				setSelectedSources(
+					sources.map(source => ({
+						value: source.value,
+						label: source.label,
+						key: source.key,
+						alias: source.alias,
+						columnName: source.columnName
+					}))
+				);
+			}
+		});
+	}, []);
 	useEffect(() => {
 		const signalReady = () => {
 			window.pywebview?.api?.ready();
@@ -96,7 +182,7 @@ function Home() {
 					<Col sm={12} lg={12}>
 						<Card>
 							<Form
-								labelCol={{ span: 4 }}
+								labelCol={{ span: 5 }}
 								wrapperCol={{ span: 20 }}
 								layout="horizontal"
 								style={{ padding: '16px', width: '100%' }}
@@ -118,6 +204,7 @@ function Home() {
 										picker="month"
 									/>
 								</Form.Item>
+
 								<Form.Item label="Prior" style={{ marginTop: '16px' }}>
 									<DatePicker
 										maxDate={dayjs(curr).subtract(1, 'month')}
@@ -128,9 +215,24 @@ function Home() {
 										picker="month"
 									></DatePicker>
 								</Form.Item>
-
 								<Form.Item
-									wrapperCol={{ offset: 4 }}
+									label={
+										<Tooltip title="you can then sort or aggregate several sources to one column using adv button. for example, you can use 'careermatch' to include 'careermatch' and 'career-match' to one source.">
+											Src
+											<InfoCircleOutlined />
+										</Tooltip>
+									}
+								>
+									<SourceSelect
+										disabled={leadSources.length === 0}
+										sources={selectedSources}
+										onChange={handleSelectedSourcesChange}
+										options={leadSources}
+										onOk={handleSaveAdvancedSources}
+									/>
+								</Form.Item>
+								<Form.Item
+									wrapperCol={{ offset: 5 }}
 									style={{ marginTop: '16px' }}
 								>
 									<Button
@@ -143,6 +245,7 @@ function Home() {
 									</Button>
 								</Form.Item>
 							</Form>
+							<Link to="/config">Advanced</Link>
 						</Card>
 					</Col>
 					<Col sm={12} lg={12}>
