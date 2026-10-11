@@ -204,7 +204,7 @@ class JSAPI:
     def process_file(self, current_month, prior_month, selected_sources=None):
         source_file = self._file_path
         todayStr = datetime.strftime(datetime.now(), '%m.%d.%y')
-        now = datetime.now().timestamp()
+        now = datetime.strftime(datetime.now(), '%H.%M.%S')
         step = "validate input"
         if self._logs is not None:
             self._logs.clear()
@@ -215,7 +215,7 @@ class JSAPI:
             outdir = self.get_output_dir()
             if not outdir:
                 raise ValueError("Output directory is not set.")
-            outdir_path = Path(outdir) / todayStr / now
+            outdir_path = Path(outdir) / (todayStr + '_' + now)
             step = "prepare output directory"
             _ensure_writable_directory(outdir)
             outdir_path.mkdir(parents=True, exist_ok=True)
