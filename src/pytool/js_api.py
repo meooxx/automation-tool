@@ -204,7 +204,7 @@ class JSAPI:
     def process_file(self, current_month, prior_month, selected_sources=None):
         source_file = self._file_path
         todayStr = datetime.strftime(datetime.now(), '%m.%d.%y')
-        now = datetime.strftime(datetime.now(), '%H.%M.%S')
+        now = datetime.strftime(datetime.now(), '%H.%M.%S%f')
         step = "validate input"
         if self._logs is not None:
             self._logs.clear()
