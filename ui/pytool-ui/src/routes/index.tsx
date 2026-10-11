@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-
 import {
 	Card,
 	Row,
@@ -156,18 +155,6 @@ function Home() {
 			}
 		});
 	}, []);
-	useEffect(() => {
-		const signalReady = () => {
-			window.pywebview?.api?.ready();
-		};
-		if (window.pywebview?.api) {
-			signalReady();
-		}
-		window.addEventListener('pywebviewready', signalReady);
-		return () => {
-			window.removeEventListener('pywebviewready', signalReady);
-		};
-	}, []);
 	const cardStyles: CardProps['styles'] = {
 		body: {
 			flexGrow: 1
@@ -182,13 +169,20 @@ function Home() {
 					<Col sm={12} lg={12}>
 						<Card>
 							<Form
+								initialValues={{
+									month: dayjs(curr)
+								}}
+								// form={form}
 								labelCol={{ span: 5 }}
 								wrapperCol={{ span: 20 }}
 								layout="horizontal"
 								style={{ padding: '16px', width: '100%' }}
 							>
 								<Form.Item label="File" style={{ marginTop: '16px' }}>
-									<PyUpload onChange={(path?: string) => setFilepath(path || null)} onSuccess={handleUploadSuccess}></PyUpload>
+									<PyUpload
+										onChange={(path?: string) => setFilepath(path || null)}
+										onSuccess={handleUploadSuccess}
+									></PyUpload>
 								</Form.Item>
 								<Form.Item
 									label="Month"
@@ -199,7 +193,7 @@ function Home() {
 									<DatePicker
 										maxDate={dayjs()}
 										minDate={dayjs('2020-01')}
-										defaultValue={dayjs(curr, 'YYYY-MM')}
+										// defaultValue={dayjs(curr, 'YYYY-MM')}
 										onChange={date => setCurr(date ? date : undefined)}
 										style={{ width: '100%' }}
 										picker="month"
