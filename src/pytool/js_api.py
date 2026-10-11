@@ -303,6 +303,7 @@ class JSAPI:
                 filtered["prior_mailable"],
                 filtered["new_this_month"],
                 filtered["new_prior_month"],
+                prospect_id_index=filtered["prospect_id_index"],
                 lead_categories=filtered["lead_categories"],
             )
             self._push_log("Finished Channel Performance")

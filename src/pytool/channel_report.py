@@ -19,6 +19,23 @@ OTHER_BLANK = (
 )
 
 
+def _unique_bucket_count(rows: list, prospect_id_index: int) -> int:
+    if prospect_id_index < 0:
+        return len(rows)
+    seen: set[str] = set()
+    blank_count = 0
+    for row in rows:
+        if prospect_id_index >= len(row) or row[prospect_id_index] is None:
+            blank_count += 1
+            continue
+        prospect_id = str(row[prospect_id_index]).strip()
+        if prospect_id:
+            seen.add(prospect_id)
+        else:
+            blank_count += 1
+    return len(seen) + blank_count
+
+
 def _source_columns(lead_categories) -> list:
     selected = [
         cat for cat in (lead_categories or [])
@@ -32,15 +49,21 @@ def month_counts(
     total_mailable: int,
     buckets: dict,
     lead_categories=None,
+    prospect_id_index: int = -1,
 ) -> list:
+    def bucket_count(key: str) -> int:
+        return _unique_bucket_count(buckets[key], prospect_id_index)
+
     return [
         total_mailable,
         new_this_month,
-        len(buckets["direct_ic"]),
-        len(buckets["direct_ooc"]),
-        len(buckets["non_direct_ic"]),
-        len(buckets["non_direct_ooc"]),
-        *[len(buckets[cat["key"]]) for cat in (lead_categories or [])],
+        bucket_count("direct_ic"),
+        bucket_count("direct_ooc"),
+        bucket_count("non_direct_ic"),
+        bucket_count("non_direct_ooc"),
+        *[bucket_count(cat["key"]) for cat in (lead_categories or [])],
+        bucket_count("other"),
+        bucket_count("blank"),
     ]
 
 
@@ -48,7 +71,7 @@ def _mom(current, prior):
     current = current or 0
     prior = prior or 0
     if prior == 0:
-        return 1.0
+        return 0 if current == 0 else None
     return (current - prior) / prior
 
 
@@ -66,14 +89,17 @@ def write_channel_performance(
     prior_mailable: int,
     new_this_month: int,
     new_prior_month: int,
+    prospect_id_index: int = -1,
     headers=None,
     lead_categories=None,
 ) -> Path:
     sources = _source_columns(lead_categories)
     current_vals = month_counts(
-        new_this_month, current_mailable, current_buckets, sources)
+        new_this_month, current_mailable, current_buckets, sources,
+        prospect_id_index)
     prior_vals = month_counts(
-        new_prior_month, prior_mailable, prior_buckets, sources)
+        new_prior_month, prior_mailable, prior_buckets, sources,
+        prospect_id_index)
 
     wb = Workbook()
     ws = wb.active
@@ -91,10 +117,10 @@ def write_channel_performance(
     for col, val in enumerate(mom_vals, start=2):
         cell = ws.cell(row=4, column=col)
         cell.number_format = "0.0%"
-        if val > 0:
+        if val is not None and val > 0:
             cell.font = GREEN_FONT
             cell.fill = GREEN_FILL
-        elif val < 0:
+        elif val is not None and val < 0:
             cell.font = RED_FONT
             cell.fill = RED_FILL
 

@@ -13,7 +13,6 @@ from pytool.constants import (
     GEORGIAN_ID_HEADER,
     IC_POSTAL_PREFIXES,
     PROSPECT_ID_HEADER,
-    UNSUBSCRIBE_HEADERS,
     ZIP_HEADER,
 )
 from pytool.lead_source import lead_categories
@@ -52,13 +51,8 @@ def is_flag_true(value: str) -> bool:
     return normalize_value(value) in {"yes", "y", "true", "1"}
 
 
-def is_unsubscribed(value: str) -> bool:
-    return is_flag_true(value)
-
-
 def is_mailable(
     row: list,
-    unsubscribe_indexes: list[int],
     georgian_id_index: int,
     deceased_index: int,
     bounced_index: int,
@@ -72,8 +66,6 @@ def is_mailable(
     if bounced_index != -1 and is_flag_true(get_cell(row, bounced_index)):
         return False
     if georgian_id_index != -1 and get_cell(row, georgian_id_index):
-        return False
-    if any(is_flag_true(get_cell(row, index)) for index in unsubscribe_indexes):
         return False
     if opt_in_index != -1 and not is_flag_true(get_cell(row, opt_in_index)):
         return False
@@ -101,7 +93,6 @@ def unique_count(rows: list, id_i: int) -> int:
 
 
 def mailable_count(rows: list, headers: list, on_error=None) -> int:
-    unsubscribe_indexes = []
     georgian_id_index = find_header_index(headers, GEORGIAN_ID_HEADER)
     deceased_index = find_header_index(headers, DECEASED_HEADER)
     bounced_index = find_header_index(headers, EMAIL_BOUNCED_HEADER)
@@ -115,7 +106,6 @@ def mailable_count(rows: list, headers: list, on_error=None) -> int:
         try:
             if is_mailable(
                 row,
-                unsubscribe_indexes,
                 georgian_id_index,
                 deceased_index,
                 bounced_index,
@@ -143,10 +133,9 @@ def classify_lead_source(
     text = (raw or "").strip()
     if not text:
         return "blank"
-    if text == "blank":
-        return "blank"
-    if text == "other":
-        return "other"
+    key = text.casefold()
+    if key in {"blank", "other"}:
+        return key
     for cat in cats:
         if cat["key"] in {"other", "blank"}:
             continue
@@ -259,4 +248,5 @@ def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
         ),
         "new_this_month": unique_count(source["current"], prospect_id_index),
         "new_prior_month": unique_count(source["prior"], prospect_id_index),
+        "prospect_id_index": prospect_id_index,
     }

@@ -84,8 +84,3 @@ FUTURE_STUDENTS_HEADER = [
     "Updates for future students",
     re.compile(r"(?i)^updates\s+for\s+future\s+students$"),
 ]
-UNSUBSCRIBE_HEADERS = [
-    ["AF", "Opted Out", re.compile(r"(?i)^opted out$")],
-    ["AO", "Opted Out of List", re.compile(r"(?i)^opted out of list$")],
-    ["AA", "Do Not Email", re.compile(r"(?i)^do not email$")],
-]

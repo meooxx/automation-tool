@@ -21,7 +21,11 @@ def lead_categories(selected: list | None) -> list[dict]:
         aliases = item.get("alias") or []
         if not isinstance(aliases, list):
             aliases = []
-        aliases = [str(a) for a in aliases if a is not None and str(a) != ""]
+        aliases = [
+            str(a).strip()
+            for a in aliases
+            if a is not None and str(a).strip()
+        ]
         value = str(item.get("value") or "").strip()
         if value and value not in aliases:
             aliases = [value, *aliases]
