@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import {
 	Card,
 	Row,
@@ -41,7 +41,7 @@ declare global {
 					pre: string,
 					selected?: string
 				) => Promise<void>;
-			
+
 				ready: () => Promise<void>;
 				open_dir: (path: string) => Promise<void>;
 				open_path: (path: string) => Promise<void>;
@@ -60,7 +60,7 @@ function Home() {
 	const dirPickerRef = useRef<{ updateDir: () => void }>(null);
 	const handleUploadSuccess = async (data: {
 		file_path: string;
-		lead_sources: { text: string; aliases: string[] }[];
+		lead_sources: { text: string }[];
 	}): Promise<void> => {
 		messageApi.success(`Choosed: ${data.file_path}`);
 		setFilepath(data.file_path);
@@ -251,7 +251,6 @@ function Home() {
 									</Button>
 								</Form.Item>
 							</Form>
-							<Link to="/config">Advanced</Link>
 						</Card>
 					</Col>
 					<Col sm={12} lg={12}>

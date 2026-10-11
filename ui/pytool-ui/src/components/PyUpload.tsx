@@ -10,7 +10,7 @@ export default function PyUpload(p: {
 	onChange?: (path?: string) => void;
 	onSuccess?: (data: {
 		file_path: string;
-		lead_sources: { text: string; aliases: string[] }[];
+		lead_sources: { text: string }[];
 	}) => void;
 }) {
 	const [fileList, setFileList] = useState<UploadFile[]>([]);

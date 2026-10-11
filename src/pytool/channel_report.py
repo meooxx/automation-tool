@@ -6,7 +6,6 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
 from pytool.constants import DEFAULT_CATEGORY_HEADER
-from pytool.settings import load_settings
 
 GREEN_FONT = Font(color="006100")
 RED_FONT = Font(color="9C0006")
@@ -14,6 +13,18 @@ GREEN_FILL = PatternFill("solid", fgColor="C6EFCE")
 RED_FILL = PatternFill("solid", fgColor="FFC7CE")
 
 QUAD_KEYS = ("direct_ic", "direct_ooc", "non_direct_ic", "non_direct_ooc")
+OTHER_BLANK = (
+    {"name": "Other", "key": "other"},
+    {"name": "Blank", "key": "blank"},
+)
+
+
+def _source_columns(lead_categories) -> list:
+    selected = [
+        cat for cat in (lead_categories or [])
+        if cat.get("key") not in {"other", "blank"}
+    ]
+    return selected + list(OTHER_BLANK)
 
 
 def month_counts(
@@ -29,9 +40,7 @@ def month_counts(
         len(buckets["direct_ooc"]),
         len(buckets["non_direct_ic"]),
         len(buckets["non_direct_ooc"]),
-        *[len(buckets[cat["key"]]) for cat in lead_categories],
-        len(buckets["other"]),
-        len(buckets["banket"])
+        *[len(buckets[cat["key"]]) for cat in (lead_categories or [])],
     ]
 
 
@@ -60,7 +69,7 @@ def write_channel_performance(
     headers=None,
     lead_categories=None,
 ) -> Path:
-    sources = load_settings().get("source_headers")
+    sources = _source_columns(lead_categories)
     current_vals = month_counts(
         new_this_month, current_mailable, current_buckets, sources)
     prior_vals = month_counts(
@@ -69,8 +78,7 @@ def write_channel_performance(
     wb = Workbook()
     ws = wb.active
     ws.title = "Channel Performance"
-    ws.append(["Month"] + [c["name"]
-              for c in DEFAULT_CATEGORY_HEADER + sources])
+    ws.append(["Month"] + [c["name"] for c in DEFAULT_CATEGORY_HEADER + sources])
     ws.append([prior_month or ""] + prior_vals)
     ws.append([current_month] + current_vals)
 

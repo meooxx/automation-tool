@@ -145,9 +145,7 @@ def read_source_data(
 
 
 def list_lead_sources(path, leader_header=LEADER_HEADER) -> list[dict]:
-    """One record per distinct raw text; aliases starts as [text]."""
-    from pytool.lead_source import assign_keys
-
+    """Unique non-empty Lead Source texts for the dropdown. No Other/Blank."""
     path = Path(path)
     wb = load_workbook(path, data_only=True, read_only=True)
     ws = wb.active
@@ -173,4 +171,4 @@ def list_lead_sources(path, leader_header=LEADER_HEADER) -> list[dict]:
         seen_set.add(text)
         seen.append(text)
     wb.close()
-    return assign_keys(sorted(seen, key=str.casefold))
+    return [{"text": text} for text in sorted(seen, key=str.casefold)]
