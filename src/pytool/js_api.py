@@ -141,9 +141,7 @@ class JSAPI:
         path = self.select_file()
         if path:
             sources = list_lead_sources(path)
-            for source in sources:
-                if "aliases" not in source:
-                    source["aliases"] = [source["text"]]
+
             return {"file_path": path, "lead_sources": sources}
         return None
 
@@ -205,7 +203,7 @@ class JSAPI:
         sources = data.get("source_headers", None)
         if sources is not None:
             self._selected_sources = sources
-        return json.dumps(sources or [])
+        return sources or []
 
     def save_source_headers(self, sources: str):
         sources = json.loads(sources) if isinstance(sources, str) else sources
@@ -225,6 +223,7 @@ class JSAPI:
     def process_file(self, current_month, prior_month, selected_sources=None):
         source_file = self._file_path
         todayStr = datetime.strftime(datetime.now(), '%m.%d.%y')
+        now = datetime.now().timestamp()
         step = "validate input"
         if self._logs is not None:
             self._logs.clear()
@@ -235,7 +234,7 @@ class JSAPI:
             outdir = self.get_output_dir()
             if not outdir:
                 raise ValueError("Output directory is not set.")
-            outdir_path = Path(outdir) / todayStr
+            outdir_path = Path(outdir) / todayStr / now
             step = "prepare output directory"
             _ensure_writable_directory(outdir)
             outdir_path.mkdir(parents=True, exist_ok=True)

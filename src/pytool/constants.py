@@ -8,8 +8,7 @@ LEADER_HEADER = [
     "Lead Source - Most Recent",
     re.compile(r"(?i)^lead\s+source.*$"),
 ]
-# match Lead Source categories for filtering
-CATEGORY_HEADER = [
+DEFAULT_CATEGORY_HEADER = [
     {
         "name": "Total mailable pros",
         "key": "totalMailablePros",
@@ -40,101 +39,8 @@ CATEGORY_HEADER = [
         "key": "nonDirectOOCPros",
         "order": 50
     },
-    {
-        "name": "Career Match",
-        "key": "careerMatch",
-        "order": 60,
-        "aliases": {"career match", "careermatch"},
-    },
-    {
-        "name": "Connect W Recr",
-        "key": "connectWRecr",
-        "order": 70,
-        "aliases": {
-            "connect w recr",
-            "connect w/ recr",
-            "connect with recruiter",
-        },
-    },
-    {
-        "name": "Recruitment events",
-        "key": "recruitmentEvents",
-        "order": 80,
-        "aliases": {"recruitment event", "recruitment events"},
-    },
-    {
-        "name": "JOML",
-        "key": "joml",
-        "order": 90,
-        "aliases": {"joml"},
-    },
-    {
-        "name": "Still time to apply",
-        "key": "stillTimeToApply",
-        "order": 100,
-        "aliases": {"still time to apply"},
-    },
-    {
-        "name": "Other",
-        "key": "other",
-        "order": 110,
-        "aliases": {"other"},
-    },
-    {
-        "name": "FOH",
-        "key": "foh",
-        "order": 120,
-        "aliases": {"foh", "fall open house"},
-    },
-    {
-        "name": "AppDay",
-        "key": "appDay",
-        "order": 130,
-        "aliases": {"appday", "app day", "application day"},
-    },
-    {
-        "name": "Auto Web Form",
-        "key": "autoWebForm",
-        "order": 140,
-        "aliases": {"auto web form", "web form"},
-    },
-    {
-        "name": "SOH",
-        "key": "soh",
-        "order": 150,
-        "aliases": {"soh", "spring open house"},
-    },
-    {
-        "name": "Tell Us More",
-        "key": "tellUsMore",
-        "order": 160,
-        "aliases": {"tell us more"},
-    },
-    {
-        "name": "GC Website",
-        "key": "gcWebsite",
-        "order": 170,
-        "aliases": {"gc website", "georgian college website"},
-    },
-    {
-        "name": "int recruitment",
-        "key": "intRecruitment",
-        "order": 180,
-        "aliases": {
-            "int recruitment",
-            "intl recruitment",
-            "international recruitment",
-        },
-    },
-    {
-        "name": "Blank",
-        "key": "blank",
-        "order": 190,
-        "aliases": set(),
-    },
 ]
-CORE_CATEGORY_HEADER = CATEGORY_HEADER[:6]
-LEAD_SOURCE_CATEGORIES = CATEGORY_HEADER[6:]
+
 
 # Direct: these exact normalized values. Everything else is Non-direct.
 DIRECT_VALUES = {
@@ -161,10 +67,15 @@ APPLICANT_TYPE_HEADER = [
     re.compile(r"(?i)\bapplicant\s+type\b"),
 ]
 PROSPECT_ID_HEADER = ["A", "Prospect Id", re.compile(r"(?i)\bprospect\s+id\b")]
-GEORGIAN_ID_HEADER = ["CR", "Georgian ID", re.compile(r"(?i)\bgeorgian\s+id\b")]
+GEORGIAN_ID_HEADER = ["CR", "Georgian ID",
+                      re.compile(r"(?i)\bgeorgian\s+id\b")]
 DECEASED_HEADER = ["CG", "Deceased", re.compile(r"(?i)^deceased$")]
-EMAIL_BOUNCED_HEADER = ["CK", "Email Bounced", re.compile(r"(?i)^email\s+bounced$")]
-EMAIL_OPT_IN_HEADER = ["CL", "Email Opt In", re.compile(r"(?i)^email\s+opt\s+in$")]
+EMAIL_BOUNCED_HEADER = ["CK", "Email Bounced",
+                        re.compile(r"(?i)^email\s+bounced$")]
+EMAIL_OPT_IN_HEADER = ["CL", "Email Opt In",
+                       re.compile(r"(?i)^email\s+opt\s+in$")]
+EMAIL_OPT_OUT_HEADER = ["AF", "Email Opt Out",
+                        re.compile(r"(?i)^email\s+opt\s+out$")]
 FUTURE_STUDENTS_HEADER = [
     "EN",
     "Updates for future students",

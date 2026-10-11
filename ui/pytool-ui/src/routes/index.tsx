@@ -41,9 +41,7 @@ declare global {
 					pre: string,
 					selected?: string
 				) => Promise<void>;
-				list_lead_sources: () => Promise<
-					{ key: string; text: string; aliases: string[] }[]
-				>;
+			
 				ready: () => Promise<void>;
 				open_dir: (path: string) => Promise<void>;
 				open_path: (path: string) => Promise<void>;

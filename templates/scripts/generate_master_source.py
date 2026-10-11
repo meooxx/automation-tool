@@ -1,4 +1,10 @@
-"""Fill Master report sample.xlsx with 100 fully populated source rows."""
+"""Fill Master report sample.xlsx with a pre-filtered, multi-month test file.
+
+Assumptions (current tool):
+- File is already list-filtered: everyone is mailable.
+- Total mailable = unique Prospect Id with Joined <= selected month.
+- Lead Source records are distinct raw texts; aliases start as [text].
+"""
 
 from __future__ import annotations
 
@@ -11,22 +17,28 @@ from openpyxl.utils import get_column_letter
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "templates" / "Master report sample.xlsx"
-OUT = ROOT / "data" / "master_source_100.xlsx"
+OUT = ROOT / "data" / "master_source_prefiltered.xlsx"
 
+# Distinct raw texts. careerpath / career-path stay two records until a map is added.
 LEAD_SOURCES = [
     "Career Match",
+    "careerpath",
+    "career-path",
     "Connect W Recr",
+    "Connect W/ Recr",
     "Recruitment events",
     "JOML",
     "Still time to apply",
-    "Legacy Program Inquiry Form",
     "FOH",
+    "Fall Open House 2026",
     "AppDay",
     "Auto Web Form",
     "SOH",
     "Tell Us More",
     "GC Website",
     "int recruitment",
+    "High School Visit Oct",
+    "Legacy Info Session",
     "",
 ]
 RESD_IC = ["IC", "ICC", "in-catchment", "in catchment"]
@@ -62,7 +74,7 @@ LAST = [
 CITIES = [
     ("Barrie", "ON", "L4N 1A1"),
     ("Orillia", "ON", "L3V 2B2"),
-    ("Midland", "ON", "L4R 3C3"),
+    ("Collingwood", "ON", "L9Z 1A1"),
     ("Toronto", "ON", "M5V 1J1"),
     ("Ottawa", "ON", "K1A 0B1"),
     ("Mississauga", "ON", "L5B 2C4"),
@@ -95,18 +107,24 @@ SPEC = [
     ("P105", "Sophia", "Patel", "sophia@test.com", date(2026, 9, 14), "Auto Web Form", "OCC", "Direct"),
     ("P106", "Lucas", "Brown", "lucas@test.com", date(2026, 9, 10), "Career Match", "out-of-catchment", "Non-Direct"),
     ("P107", "Mason", "Nguyen", "mason@test.com", date(2026, 9, 19), "GC Website", "in-catchment", "University Transfer"),
-    ("P108", "Mia", "Garcia", "mia@test.com", date(2026, 9, 22), "Legacy Department Form", "out of catchment", "nondirect"),
+    ("P108", "Mia", "Garcia", "mia@test.com", date(2026, 9, 22), "career-path", "out of catchment", "nondirect"),
+    ("P110", "Owen", "Lopez", "owen@test.com", date(2026, 9, 3), "careerpath", "IC", "Direct"),
+    ("P111", "Chloe", "Khan", "chloe@test.com", date(2026, 6, 18), "Fall Open House 2026", "ICC", "Direct from High School"),
+    ("P112", "Leo", "Wilson", "leo@test.com", date(2026, 3, 9), "High School Visit Oct", "OOC", "Mature Student"),
     ("P099", "James", "Kim", "james@test.com", date(2026, 8, 15), "Career Match", "IC", "Direct from Secondary School"),
     ("P098", "Ella", "Rossi", "ella@test.com", date(2026, 8, 20), "FOH", "OOC", "Non Direct"),
+    ("P097", "Ava", "Ahmed", "ava@test.com", date(2026, 3, 22), "", "IC", "Direct"),
 ]
 
 
 def joined_for(i: int) -> date:
-    if i < 70:
+    if i < 50:
         return date(2026, 9, 1) + timedelta(days=i % 29)
-    if i < 95:
-        return date(2026, 8, 1) + timedelta(days=(i - 70) % 30)
-    return date(2026, 7, 3) + timedelta(days=(i - 95) % 20)
+    if i < 80:
+        return date(2026, 8, 1) + timedelta(days=(i - 50) % 30)
+    if i < 100:
+        return date(2026, 6, 1) + timedelta(days=(i - 80) % 28)
+    return date(2026, 3, 2) + timedelta(days=(i - 100) % 25)
 
 
 def build_people(n: int = 100) -> list[dict]:
@@ -147,7 +165,7 @@ def build_people(n: int = 100) -> list[dict]:
                 "source": LEAD_SOURCES[len(people) % len(LEAD_SOURCES)],
                 "catchment": catchment,
                 "applicant_type": applicant_type,
-                "opt_out": rng.random() < 0.06,
+                "opt_out": False,
             }
         )
         used.add(pid)
@@ -178,8 +196,7 @@ def value_for(header: str, p: dict, i: int, rng: random.Random):
     advisor = f"advisor{(i % 5) + 1}@georgiancollege.ca"
     hs = HIGH_SCHOOLS[i % len(HIGH_SCHOOLS)]
     yob = 2005 + (i % 6)
-    # Most prospects have no Georgian ID; a small subset has become students.
-    georgian_id = f"G{2000000 + i}" if i % 9 == 0 else ""
+    georgian_id = ""
     ocas = f"OC{300000 + i}"
     street = f"{100 + i} College Dr"
     opt = p["opt_out"]
@@ -373,7 +390,7 @@ def main() -> None:
         raise SystemExit("template has empty header cells")
 
     rng = random.Random(26)
-    people = build_people(100)
+    people = build_people(120)
     for row_idx, person in enumerate(people, start=2):
         for col, header in enumerate(headers, start=1):
             write_cell(ws, row_idx, col, value_for(str(header), person, row_idx - 1, rng))

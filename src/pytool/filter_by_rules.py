@@ -5,15 +5,20 @@ import re
 
 from pytool.constants import (
     APPLICANT_TYPE_HEADER,
+    DECEASED_HEADER,
     DIRECT_VALUES,
+    EMAIL_BOUNCED_HEADER,
+    EMAIL_OPT_IN_HEADER,
+    FUTURE_STUDENTS_HEADER,
+    EMAIL_OPT_OUT_HEADER,
     GEORGIAN_ID_HEADER,
     IC_POSTAL_PREFIXES,
-    LEAD_SOURCE_CATEGORIES,
     PROSPECT_ID_HEADER,
     UNSUBSCRIBE_HEADERS,
     ZIP_HEADER,
 )
-from pytool.read_source_data import find_header_index
+from pytool.lead_source import lead_categories
+from pytool.read_source_data import find_header_index, year_month
 
 
 def get_cell(row: list, index: int) -> str:
@@ -44,21 +49,42 @@ def is_direct(applicant_type: str) -> bool:
     return normalize_value(applicant_type) in DIRECT_VALUES
 
 
-def is_unsubscribed(value: str) -> bool:
+def is_flag_true(value: str) -> bool:
     return normalize_value(value) in {"yes", "y", "true", "1"}
+
+
+def is_unsubscribed(value: str) -> bool:
+    return is_flag_true(value)
 
 
 def is_mailable(
     row: list,
     unsubscribe_indexes: list[int],
     georgian_id_index: int,
+    deceased_index: int,
+    bounced_index: int,
+    opt_in_index: int,
+    email_opt_out_index: int,
+
+    future_students_index: int,
 ) -> bool:
-    is_opted_out = any(
-        is_unsubscribed(get_cell(row, index))
-        for index in unsubscribe_indexes
-    )
-    has_georgian_id = bool(get_cell(row, georgian_id_index))
-    return not is_opted_out and not has_georgian_id
+    if deceased_index != -1 and is_flag_true(get_cell(row, deceased_index)):
+        return False
+    if bounced_index != -1 and is_flag_true(get_cell(row, bounced_index)):
+        return False
+    if georgian_id_index != -1 and get_cell(row, georgian_id_index):
+        return False
+    if any(is_flag_true(get_cell(row, index)) for index in unsubscribe_indexes):
+        return False
+    if opt_in_index != -1 and not is_flag_true(get_cell(row, opt_in_index)):
+        return False
+    if email_opt_out_index != -1 and is_flag_true(get_cell(row, email_opt_out_index)):
+        return False
+    if future_students_index != -1 and not is_flag_true(
+        get_cell(row, future_students_index)
+    ):
+        return False
+    return True
 
 
 def unique_count(rows: list, id_i: int) -> int:
@@ -76,28 +102,29 @@ def unique_count(rows: list, id_i: int) -> int:
 
 
 def mailable_count(rows: list, headers: list, on_error=None) -> int:
-    unsubscribe_indexes = []
-    for spec in UNSUBSCRIBE_HEADERS:
-        index = find_header_index(headers, spec)
-        if index != -1:
-            unsubscribe_indexes.append(index)
+    
 
     georgian_id_index = find_header_index(headers, GEORGIAN_ID_HEADER)
+    deceased_index = find_header_index(headers, DECEASED_HEADER)
+    bounced_index = find_header_index(headers, EMAIL_BOUNCED_HEADER)
+    opt_in_index = find_header_index(headers, EMAIL_OPT_IN_HEADER)
+    future_students_index = find_header_index(headers, FUTURE_STUDENTS_HEADER)
+    email_opt_out_index = find_header_index(headers, EMAIL_OPT_OUT_HEADER)
+
     prospect_id_index = find_header_index(headers, PROSPECT_ID_HEADER)
-    if not unsubscribe_indexes:
-        raise ValueError("no unsubscribe column")
-    if georgian_id_index == -1:
-        raise ValueError("no Georgian ID column")
-    if prospect_id_index == -1:
-        raise ValueError("no Prospect Id column")
 
     mailable_rows = []
     for row_number, row in enumerate(rows, start=1):
         try:
             if is_mailable(
                 row,
-                unsubscribe_indexes,
+                [],
                 georgian_id_index,
+                deceased_index,
+                bounced_index,
+                opt_in_index,
+                email_opt_out_index,
+                future_students_index,
             ):
                 mailable_rows.append(row)
         except Exception as e:
@@ -111,12 +138,18 @@ def mailable_count(rows: list, headers: list, on_error=None) -> int:
     return unique_count(mailable_rows, prospect_id_index)
 
 
-def classify_lead_source(raw: str) -> tuple[str, bool]:
+def classify_lead_source(
+    raw: str,
+    categories: list[dict] | None = None,
+) -> tuple[str, bool]:
+    cats = categories if categories is not None else lead_categories([])
     text = normalize_value(raw)
     if not text:
         return "blank", True
-    for cat in LEAD_SOURCE_CATEGORIES:
-        if text in cat.get("aliases", set()):
+    for cat in cats:
+        if cat["key"] in {"other", "blank"}:
+            continue
+        if text in cat.get("alias", set()):
             return cat["key"], True
     return "other", False
 
@@ -129,14 +162,15 @@ def map_lead_source(raw: str) -> str:
 def _split_lead_sources(
     rows: list,
     leader_i: int,
+    categories: list[dict],
     on_error=None,
 ) -> tuple[dict[str, list], dict[str, int]]:
-    buckets = {cat["key"]: [] for cat in LEAD_SOURCE_CATEGORIES}
+    buckets = {cat["key"]: [] for cat in categories}
     unmatched: Counter[str] = Counter()
     for i, row in enumerate(rows, start=1):
         try:
             raw = get_cell(row, leader_i)
-            key, matched = classify_lead_source(raw)
+            key, matched = classify_lead_source(raw, categories)
             buckets[key].append(row)
             if not matched:
                 unmatched[raw] += 1
@@ -144,6 +178,16 @@ def _split_lead_sources(
             if on_error:
                 on_error("lead_source", i, row, f"{type(e).__name__}: {e}")
     return buckets, dict(unmatched)
+
+
+def rows_through_month(rows: list, joined_i: int, through_ym: tuple[int, int]) -> list:
+    kept = []
+    for row in rows:
+        joined = row[joined_i] if joined_i < len(row) else None
+        ym = year_month(joined)
+        if ym is not None and ym <= through_ym:
+            kept.append(row)
+    return kept
 
 
 def _split_quadrants(rows: list, zip_i: int, type_i: int, on_error=None) -> dict[str, list]:
@@ -171,21 +215,27 @@ def _split_quadrants(rows: list, zip_i: int, type_i: int, on_error=None) -> dict
     return buckets
 
 
-def filter_by_rules(source: dict, on_error=None) -> dict:
+def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
     headers = source["headers"]
     zip_i = find_header_index(headers, ZIP_HEADER)
     type_i = find_header_index(headers, APPLICANT_TYPE_HEADER)
     leader_i = source.get("leader_index", -1)
+    joined_i = source.get("joined_index", -1)
     if zip_i == -1:
         raise ValueError("no Zip column")
     if type_i == -1:
         raise ValueError("no OH Applicant Type column")
     if leader_i == -1:
         raise ValueError("no Lead Source column")
+    if joined_i == -1:
+        raise ValueError("no Joined column")
+
+    categories = lead_categories(selected_sources)
+    prospect_id_index = find_header_index(headers, PROSPECT_ID_HEADER)
 
     def split(rows: list) -> tuple[dict, dict[str, int]]:
         lead_buckets, unmatched = _split_lead_sources(
-            rows, leader_i, on_error)
+            rows, leader_i, categories, on_error)
         return {
             **_split_quadrants(rows, zip_i, type_i, on_error),
             **lead_buckets,
@@ -193,21 +243,25 @@ def filter_by_rules(source: dict, on_error=None) -> dict:
 
     current, current_unmatched = split(source["current"])
     prior, prior_unmatched = split(source["prior"])
+    dated = source.get("all", source["current"] + source["prior"])
+    current_ym = source["current_ym"]
+    prior_ym = source["prior_ym"]
     return {
         "current": current,
         "prior": prior,
+        "lead_categories": categories,
         "current_mailable": mailable_count(
-            source["current"], headers, on_error),
+            rows_through_month(dated, joined_i, current_ym),
+            headers,
+            on_error,
+        ),
         "prior_mailable": mailable_count(
-            source["prior"], headers, on_error),
-        "new_this_month": unique_count(
-            source["current"],
-            find_header_index(headers, PROSPECT_ID_HEADER),
+            rows_through_month(dated, joined_i, prior_ym),
+            headers,
+            on_error,
         ),
-        "new_prior_month": unique_count(
-            source["prior"],
-            find_header_index(headers, PROSPECT_ID_HEADER),
-        ),
+        "new_this_month": unique_count(source["current"], prospect_id_index),
+        "new_prior_month": unique_count(source["prior"], prospect_id_index),
         "unmatched_lead_sources": {
             "current": current_unmatched,
             "prior": prior_unmatched,
