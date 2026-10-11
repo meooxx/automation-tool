@@ -1,6 +1,5 @@
 """Split rows into Direct/IC quadrants and Lead Source buckets."""
 
-from collections import Counter
 import re
 
 from pytool.constants import (
@@ -139,22 +138,26 @@ def mailable_count(rows: list, headers: list, on_error=None) -> int:
 def classify_lead_source(
     raw: str,
     categories: list[dict] | None = None,
-) -> tuple[str, bool]:
+) -> str:
     cats = categories if categories is not None else lead_categories([])
-    text = normalize_value(raw)
+    text = (raw or "").strip()
     if not text:
-        return "blank", True
+        return "blank"
+    if text == "blank":
+        return "blank"
+    if text == "other":
+        return "other"
     for cat in cats:
         if cat["key"] in {"other", "blank"}:
             continue
-        if text in cat.get("alias", set()):
-            return cat["key"], True
-    return "other", False
+        aliases = cat.get("alias") or []
+        if text in aliases:
+            return cat["key"]
+    return "other"
 
 
 def map_lead_source(raw: str) -> str:
-    key, _ = classify_lead_source(raw)
-    return key
+    return classify_lead_source(raw)
 
 
 def _split_lead_sources(
@@ -162,20 +165,18 @@ def _split_lead_sources(
     leader_i: int,
     categories: list[dict],
     on_error=None,
-) -> tuple[dict[str, list], dict[str, int]]:
+) -> dict[str, list]:
     buckets = {cat["key"]: [] for cat in categories}
-    unmatched: Counter[str] = Counter()
+    buckets.setdefault("other", [])
+    buckets.setdefault("blank", [])
     for i, row in enumerate(rows, start=1):
         try:
             raw = get_cell(row, leader_i)
-            key, matched = classify_lead_source(raw, categories)
-            buckets[key].append(row)
-            if not matched:
-                unmatched[raw] += 1
+            buckets[classify_lead_source(raw, categories)].append(row)
         except Exception as e:
             if on_error:
                 on_error("lead_source", i, row, f"{type(e).__name__}: {e}")
-    return buckets, dict(unmatched)
+    return buckets
 
 
 def rows_through_month(rows: list, joined_i: int, through_ym: tuple[int, int]) -> list:
@@ -231,16 +232,14 @@ def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
     categories = lead_categories(selected_sources)
     prospect_id_index = find_header_index(headers, PROSPECT_ID_HEADER)
 
-    def split(rows: list) -> tuple[dict, dict[str, int]]:
-        lead_buckets, unmatched = _split_lead_sources(
-            rows, leader_i, categories, on_error)
+    def split(rows: list) -> dict:
         return {
             **_split_quadrants(rows, zip_i, type_i, on_error),
-            **lead_buckets,
-        }, unmatched
+            **_split_lead_sources(rows, leader_i, categories, on_error),
+        }
 
-    current, current_unmatched = split(source["current"])
-    prior, prior_unmatched = split(source["prior"])
+    current = split(source["current"])
+    prior = split(source["prior"])
     dated = source.get("all", source["current"] + source["prior"])
     current_ym = source["current_ym"]
     prior_ym = source["prior_ym"]
@@ -260,8 +259,4 @@ def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
         ),
         "new_this_month": unique_count(source["current"], prospect_id_index),
         "new_prior_month": unique_count(source["prior"], prospect_id_index),
-        "unmatched_lead_sources": {
-            "current": current_unmatched,
-            "prior": prior_unmatched,
-        },
     }

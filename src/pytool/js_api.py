@@ -11,7 +11,7 @@ import openpyxl
 import webview
 
 from pytool.channel_report import write_channel_performance
-from pytool.filter_by_rules import filter_by_rules, normalize_value
+from pytool.filter_by_rules import filter_by_rules
 from pytool.read_source_data import list_lead_sources, read_source_data
 from pytool.settings import get_log_path, load_settings, save_settings
 from pytool.event import ui_ready_event
@@ -48,33 +48,6 @@ def _write_workbook(path: Path, title: str, headers: list, rows: list) -> None:
     for row in rows:
         ws.append(row)
     wb.save(path)
-
-
-def _log_unmatched_lead_sources(
-    unmatched: dict,
-    current_month: str,
-    prior_month: str,
-) -> int:
-    sections = (
-        (current_month, unmatched.get("current", {})),
-        (prior_month, unmatched.get("prior", {})),
-    )
-    total = sum(sum(counts.values()) for _, counts in sections)
-    for month, counts in sections:
-        for raw, count in sorted(
-            counts.items(),
-            key=lambda item: item[0].casefold(),
-        ):
-            logger.warning(
-                "Unmatched Lead Source [%s]: raw=%r, normalized=%r, "
-                "reason=no configured alias matched, classified_as=Other "
-                "(%s rows)",
-                month,
-                raw,
-                normalize_value(raw),
-                count,
-            )
-    return total
 
 
 def read_lead_sources(file_path: str) -> list:
@@ -213,14 +186,14 @@ class JSAPI:
         for source in sources:
             if not isinstance(source, dict):
                 continue
-            aliases = source.get("alias")
+            aliases = source.get("alias") or []
             if not isinstance(aliases, list):
-                aliases = [aliases] if aliases else []
+                aliases = []
             selected_sources.append({
                 "key": str(source.get("key") or "").strip(),
                 "label": str(source.get("label") or "").strip(),
                 "value": str(source.get("value") or "").strip(),
-                "alias": [str(a).strip() for a in aliases if str(a).strip()],
+                "alias": [str(a).strip() for a in aliases if a is not None],
                 "columnName": str(source.get("columnName") or "").strip(),
             })
         data = load_settings()
@@ -333,17 +306,6 @@ class JSAPI:
                 lead_categories=filtered["lead_categories"],
             )
             self._push_log("Finished Channel Performance")
-            unmatched_count = _log_unmatched_lead_sources(
-                filtered["unmatched_lead_sources"],
-                current_month,
-                prior_month,
-            )
-            if unmatched_count:
-                self._push_log(
-                    f"{unmatched_count} unmatched Lead Source values; "
-                    "details are in errors.log",
-                    icon="warning",
-                )
             self._push_log("Finished processing report",
                            icon="success", path=str(outdir_path))
             return str(report)
