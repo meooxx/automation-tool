@@ -259,10 +259,11 @@ class JSAPI:
             )
 
             step = "filter"
+            if isinstance(selected_sources, str):
+                selected_sources = json.loads(selected_sources)
             if selected_sources is None:
-                selected_sources = [
-                    item["text"] for item in list_lead_sources(source_file)
-                ]
+                raise ValueError("selected_sources is required")
+            self.save_source_headers(selected_sources)
             filtered = filter_by_rules(
                 originData,
                 on_error=on_row_error,

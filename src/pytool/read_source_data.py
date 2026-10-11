@@ -104,6 +104,7 @@ def read_source_data(
 
     current = []
     prior = []
+    dated = []
     for excel_row, values in enumerate(rows, start=2):
         try:
             if values is None or all(v is None or str(v).strip() == "" for v in values):
@@ -115,6 +116,7 @@ def read_source_data(
                 if on_error:
                     on_error("joined", excel_row, row, f"cannot parse Joined: {joined!r}")
                 continue
+            dated.append(row)
             if ym == current_ym:
                 current.append(row)
             elif ym == prior_ym:
@@ -134,6 +136,41 @@ def read_source_data(
         "headers": headers,
         "joined_index": joined_i,
         "leader_index": leader_i,
+        "current_ym": current_ym,
+        "prior_ym": prior_ym,
+        "all": dated,
         "current": current,
         "prior": prior,
     }
+
+
+def list_lead_sources(path, leader_header=LEADER_HEADER) -> list[dict]:
+    """One record per distinct raw text; aliases starts as [text]."""
+    from pytool.lead_source import assign_keys
+
+    path = Path(path)
+    wb = load_workbook(path, data_only=True, read_only=True)
+    ws = wb.active
+    rows = ws.iter_rows(values_only=True)
+    header_row = next(rows, None)
+    if header_row is None:
+        wb.close()
+        raise ValueError(f"empty workbook: {path}")
+    headers = ["" if h is None else str(h) for h in header_row]
+    leader_i = find_header_index(headers, leader_header)
+    if leader_i == -1:
+        wb.close()
+        raise ValueError("no Lead Source column in header row")
+    seen: list[str] = []
+    seen_set: set[str] = set()
+    for values in rows:
+        if values is None or leader_i >= len(values):
+            continue
+        raw = values[leader_i]
+        text = "" if raw is None else str(raw).strip()
+        if not text or text in seen_set:
+            continue
+        seen_set.add(text)
+        seen.append(text)
+    wb.close()
+    return assign_keys(sorted(seen, key=str.casefold))

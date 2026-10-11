@@ -120,7 +120,7 @@ export function SourceSelect(props: {
 	const handleOk = async () => {
 		startTransition(async () => {
 			const values = form.getFieldsValue().sources || [];
-			props.onOk?.(values);
+			props.onChange?.('', values);
 			await window.pywebview?.api?.save_source_headers(JSON.stringify(values));
 			setOpen(false);
 		});

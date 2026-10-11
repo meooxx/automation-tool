@@ -40,7 +40,7 @@ declare global {
 				process_file: (
 					curr: string,
 					pre: string,
-					selected?: string[]
+					selected?: string
 				) => Promise<void>;
 				list_lead_sources: () => Promise<
 					{ key: string; text: string; aliases: string[] }[]
@@ -99,7 +99,7 @@ function Home() {
 	const [pre, setPre] = useState<dayjs.Dayjs | undefined>(
 		dayjs().subtract(1, 'month')
 	);
-	const disabled = curr === null || filepath === null;
+	const disabled = curr === null;
 	const handleSelectedSourcesChange = (
 		_: string,
 		options?: Source | Source[]
@@ -115,9 +115,9 @@ function Home() {
 			}))
 		);
 	};
-	const handleSaveAdvancedSources = (sources: Source[]) => {
-		setSelectedSources(sources);
-	};
+	// const handleSaveAdvancedSources = (sources: Source[]) => {
+	// 	setSelectedSources(sources);
+	// };
 	const handleProcess = () => {
 		startTransition(async () => {
 			try {
@@ -125,7 +125,8 @@ function Home() {
 					curr!.format('YYYY-MM'),
 					pre
 						? pre.format('YYYY-MM')
-						: curr!.subtract(1, 'month').format('YYYY-MM')
+						: curr!.subtract(1, 'month').format('YYYY-MM'),
+					JSON.stringify(selectedSources)
 				);
 			} catch (e) {
 				messageApi.error(e instanceof Error ? e.message : String(e));
@@ -142,7 +143,6 @@ function Home() {
 	}, [curr]);
 	useEffect(() => {
 		window.pywebview?.api?.get_source_headers().then((sources: Source[]) => {
-			console.log(sources)
 			if (sources?.length > 0) {
 				setSelectedSources(
 					sources.map(source => ({
@@ -188,11 +188,12 @@ function Home() {
 								style={{ padding: '16px', width: '100%' }}
 							>
 								<Form.Item label="File" style={{ marginTop: '16px' }}>
-									<PyUpload onSuccess={handleUploadSuccess}></PyUpload>
+									<PyUpload onChange={(path?: string) => setFilepath(path || null)} onSuccess={handleUploadSuccess}></PyUpload>
 								</Form.Item>
 								<Form.Item
 									label="Month"
-
+									name="month"
+									rules={[{ required: true, message: 'Please select a month' }]}
 									style={{ marginTop: '16px' }}
 								>
 									<DatePicker
@@ -208,7 +209,7 @@ function Home() {
 								<Form.Item label="Prior" style={{ marginTop: '16px' }}>
 									<DatePicker
 										maxDate={dayjs(curr).subtract(1, 'month')}
-										disabled={pre == null && pre == null}
+										disabled={curr == null}
 										value={pre}
 										onChange={date => setPre(date ? date : undefined)}
 										style={{ width: '100%' }}
@@ -216,10 +217,23 @@ function Home() {
 									></DatePicker>
 								</Form.Item>
 								<Form.Item
+									name="sources"
+									rules={[
+										() => ({
+											validator(_) {
+												if (selectedSources.length > 0) {
+													return Promise.resolve();
+												}
+												return Promise.reject(
+													new Error('Please select at least one source.')
+												);
+											}
+										})
+									]}
 									label={
 										<Tooltip title="you can then sort or aggregate several sources to one column using adv button. for example, you can use 'careermatch' to include 'careermatch' and 'career-match' to one source.">
 											Src
-											<InfoCircleOutlined />
+											<InfoCircleOutlined style={{ marginLeft: '4px' }} />
 										</Tooltip>
 									}
 								>
@@ -228,7 +242,7 @@ function Home() {
 										sources={selectedSources}
 										onChange={handleSelectedSourcesChange}
 										options={leadSources}
-										onOk={handleSaveAdvancedSources}
+										// onOk={handleSaveAdvancedSources}
 									/>
 								</Form.Item>
 								<Form.Item

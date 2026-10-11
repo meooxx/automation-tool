@@ -7,6 +7,7 @@ const { Dragger } = Upload;
 
 export default function PyUpload(p: {
 	children?: React.ReactNode;
+	onChange?: (path?: string) => void;
 	onSuccess?: (data: {
 		file_path: string;
 		lead_sources: { text: string; aliases: string[] }[];
@@ -26,6 +27,7 @@ export default function PyUpload(p: {
 	useEffect(() => {
 		window.pywebview?.api?.get_file_path().then(path => {
 			if (path) {
+				p.onChange?.(path);
 				// p.onSuccess?.(path);
 				setFileList([{ uid: '-1', name: path, status: 'done', url: path }]);
 			}
