@@ -74,8 +74,11 @@ EMAIL_BOUNCED_HEADER = ["CK", "Email Bounced",
                         re.compile(r"(?i)^email\s+bounced$")]
 EMAIL_OPT_IN_HEADER = ["CL", "Email Opt In",
                        re.compile(r"(?i)^email\s+opt\s+in$")]
-EMAIL_OPT_OUT_HEADER = ["AF", "Email Opt Out",
-                        re.compile(r"(?i)^email\s+opt\s+out$")]
+EMAIL_OPT_OUT_HEADER = [
+    "AF",
+    "Opted Out",
+    re.compile(r"(?i)^(email\s+opt\s+out|opted out)$"),
+]
 FUTURE_STUDENTS_HEADER = [
     "EN",
     "Updates for future students",

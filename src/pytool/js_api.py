@@ -207,14 +207,22 @@ class JSAPI:
 
     def save_source_headers(self, sources: str):
         sources = json.loads(sources) if isinstance(sources, str) else sources
-
-        selected_sources = [{
-            "key": source["key"].strip() if "key" in source else "",
-            "label": source["label"].strip() if "label" in source else "",
-            "value": source["value"].strip() if "value" in source else "",
-            "alias": [alias.strip() for alias in source["alias"]] if "alias" in source and isinstance(source["alias"], list) else "",
-            "columnName": source["columnName"].strip() if "columnName" in source else ""
-        } for source in sources]
+        if not isinstance(sources, list):
+            raise ValueError("sources must be a list")
+        selected_sources = []
+        for source in sources:
+            if not isinstance(source, dict):
+                continue
+            aliases = source.get("alias")
+            if not isinstance(aliases, list):
+                aliases = [aliases] if aliases else []
+            selected_sources.append({
+                "key": str(source.get("key") or "").strip(),
+                "label": str(source.get("label") or "").strip(),
+                "value": str(source.get("value") or "").strip(),
+                "alias": [str(a).strip() for a in aliases if str(a).strip()],
+                "columnName": str(source.get("columnName") or "").strip(),
+            })
         data = load_settings()
         data["source_headers"] = selected_sources
         self._selected_sources = selected_sources

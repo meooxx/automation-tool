@@ -102,15 +102,13 @@ def unique_count(rows: list, id_i: int) -> int:
 
 
 def mailable_count(rows: list, headers: list, on_error=None) -> int:
-    
-
+    unsubscribe_indexes = []
     georgian_id_index = find_header_index(headers, GEORGIAN_ID_HEADER)
     deceased_index = find_header_index(headers, DECEASED_HEADER)
     bounced_index = find_header_index(headers, EMAIL_BOUNCED_HEADER)
     opt_in_index = find_header_index(headers, EMAIL_OPT_IN_HEADER)
     future_students_index = find_header_index(headers, FUTURE_STUDENTS_HEADER)
     email_opt_out_index = find_header_index(headers, EMAIL_OPT_OUT_HEADER)
-
     prospect_id_index = find_header_index(headers, PROSPECT_ID_HEADER)
 
     mailable_rows = []
@@ -118,7 +116,7 @@ def mailable_count(rows: list, headers: list, on_error=None) -> int:
         try:
             if is_mailable(
                 row,
-                [],
+                unsubscribe_indexes,
                 georgian_id_index,
                 deceased_index,
                 bounced_index,
