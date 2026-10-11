@@ -8,8 +8,8 @@ from pytool.constants import (
     DIRECT_VALUES,
     EMAIL_BOUNCED_HEADER,
     EMAIL_OPT_IN_HEADER,
-    FUTURE_STUDENTS_HEADER,
     EMAIL_OPT_OUT_HEADER,
+    FUTURE_STUDENTS_HEADER,
     GEORGIAN_ID_HEADER,
     IC_POSTAL_PREFIXES,
     PROSPECT_ID_HEADER,
@@ -58,7 +58,6 @@ def is_mailable(
     bounced_index: int,
     opt_in_index: int,
     email_opt_out_index: int,
-
     future_students_index: int,
 ) -> bool:
     if deceased_index != -1 and is_flag_true(get_cell(row, deceased_index)):
@@ -69,7 +68,9 @@ def is_mailable(
         return False
     if opt_in_index != -1 and not is_flag_true(get_cell(row, opt_in_index)):
         return False
-    if email_opt_out_index != -1 and is_flag_true(get_cell(row, email_opt_out_index)):
+    if email_opt_out_index != -1 and is_flag_true(
+        get_cell(row, email_opt_out_index)
+    ):
         return False
     if future_students_index != -1 and not is_flag_true(
         get_cell(row, future_students_index)
@@ -93,6 +94,7 @@ def unique_count(rows: list, id_i: int) -> int:
 
 
 def mailable_count(rows: list, headers: list, on_error=None) -> int:
+    """Count unique rows that are mailable in the supplied cumulative range."""
     georgian_id_index = find_header_index(headers, GEORGIAN_ID_HEADER)
     deceased_index = find_header_index(headers, DECEASED_HEADER)
     bounced_index = find_header_index(headers, EMAIL_BOUNCED_HEADER)
@@ -236,6 +238,8 @@ def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
         "current": current,
         "prior": prior,
         "lead_categories": categories,
+        # Salesforce may already apply these rules; applying them again is
+        # intentionally retained as a defensive, idempotent check.
         "current_mailable": mailable_count(
             rows_through_month(dated, joined_i, current_ym),
             headers,
