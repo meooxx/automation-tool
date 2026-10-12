@@ -19,7 +19,7 @@ import dayjs from 'dayjs';
 import DirPicker from '../components/PyDirPicker';
 import LogDir from '../components/LogDir';
 import { SourceSelect, type Source } from '../components/SouceSelect';
-import { InfoCircleOutlined } from '@ant-design/icons/es/icons/index';
+import { InfoCircleOutlined } from '@ant-design/icons';
 export const Route = createFileRoute('/')({ component: Home });
 
 declare global {
