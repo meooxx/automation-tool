@@ -251,13 +251,14 @@ class JSAPI:
             )
             current = filtered["current"]
             year = current_date.year
+            month = current_date.strftime("%m")
             headers = originData["headers"]
 
             step = "write Direct IC"
             _write_workbook(
                 outdir_path /
                 f"MCR-{year}-Channel Performance Direct IC-{todayStr}.xlsx",
-                "Direct IC",
+                f"Direct IC-{month}",
                 headers,
                 current["direct_ic"],
             )
@@ -266,7 +267,7 @@ class JSAPI:
             _write_workbook(
                 outdir_path /
                 f"MCR-{year}-Channel Performance Direct OOC-{todayStr}.xlsx",
-                "Direct OOC",
+                f"Direct OOC-{month}",
                 headers,
                 current["direct_ooc"],
             )
@@ -275,7 +276,7 @@ class JSAPI:
             _write_workbook(
                 outdir_path /
                 f"MCR-{year}-Channel Performance NonDirect IC-{todayStr}.xlsx",
-                "NonDirect IC",
+                f"NonDirect IC-{month}",
                 headers,
                 current["non_direct_ic"],
             )
@@ -284,7 +285,7 @@ class JSAPI:
             _write_workbook(
                 outdir_path /
                 f"MCR-{year}-Channel Performance NonDirect OOC-{todayStr}.xlsx",
-                "NonDirect OOC",
+                f"NonDirect OOC-{month}",
                 headers,
                 current["non_direct_ooc"],
             )

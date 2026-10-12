@@ -95,10 +95,10 @@ def write_channel_performance(
 ) -> Path:
     sources = _source_columns(lead_categories)
     current_vals = month_counts(
-        new_this_month, current_mailable, current_buckets, sources,
+        new_this_month, current_mailable, current_buckets, lead_categories,
         prospect_id_index)
     prior_vals = month_counts(
-        new_prior_month, prior_mailable, prior_buckets, sources,
+        new_prior_month, prior_mailable, prior_buckets, lead_categories,
         prospect_id_index)
 
     wb = Workbook()

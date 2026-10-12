@@ -96,7 +96,7 @@ function Home() {
 	const [pre, setPre] = useState<dayjs.Dayjs | undefined>(
 		dayjs().subtract(1, 'month')
 	);
-	const disabled = curr === null;
+	const disabled = curr === null || filepath === null || selectedSources.length === 0;
 	const handleSelectedSourcesChange = (
 		_: string,
 		options?: Source | Source[]
@@ -125,6 +125,7 @@ function Home() {
 						: curr!.subtract(1, 'month').format('YYYY-MM'),
 					JSON.stringify(selectedSources)
 				);
+				messageApi.success('Process completed successfully.');
 			} catch (e) {
 				messageApi.error(e instanceof Error ? e.message : String(e));
 			}
@@ -289,4 +290,3 @@ function Home() {
 		</>
 	);
 }
-
