@@ -29,9 +29,18 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-	// ui ready
 	useEffect(() => {
-		window.pywebview?.api?.ready();
+		const signalReady = () => {
+			window.pywebview?.api?.ready();
+		};
+		// API may already be present (macOS), or arrive later (Windows WebView2).
+		if (window.pywebview?.api) {
+			signalReady();
+		}
+		window.addEventListener('pywebviewready', signalReady);
+		return () => {
+			window.removeEventListener('pywebviewready', signalReady);
+		};
 	}, []);
 	return (
 		<html lang="en">
