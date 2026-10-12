@@ -32,7 +32,7 @@ def main() -> None:
     yarn = shutil.which("yarn.cmd") or shutil.which("yarn")
     if yarn is None:
         raise RuntimeError("yarn is required to build the frontend before packaging.")
-
+    run([yarn], UI_DIR)
     run([yarn, "run", "build"], UI_DIR)
     if not UI_INDEX.is_file():
         raise RuntimeError(
