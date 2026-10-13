@@ -12,8 +12,22 @@ import webview
 
 from pytool.channel_report import write_channel_performance
 from pytool.filter_by_rules import filter_by_rules
-from pytool.read_source_data import list_lead_sources, read_source_data
-from pytool.settings import get_log_path, load_settings, save_settings
+from pytool.read_source_data import (
+    list_lead_sources,
+    read_source_data,
+    validate_source_file,
+)
+from pytool.settings import (
+    get_classification_rules,
+    get_configuration,
+    get_log_path,
+    load_settings,
+    reset_classification_rule,
+    save_classification_rules,
+    save_settings,
+    update_configuration,
+    get_nurture_config,
+)
 from pytool.event import ui_ready_event
 from pytool.push_logs import SentToBrowser
 logger = logging.getLogger("pytool")
@@ -114,12 +128,71 @@ class JSAPI:
         path = self.select_file()
         if path:
             sources = list_lead_sources(path)
-
-            return {"file_path": path, "lead_sources": sources}
+            validation = validate_source_file(path)
+            return {
+                "file_path": path,
+                "lead_sources": sources,
+                "validation": validation,
+            }
         return None
+
+    def select_nurture_file(self):
+        path = self.select_file_impl("OPEN")
+        if not path:
+            return None
+        if path:
+            data = load_settings()
+            nurture = get_nurture_config()
+            nurture["file_path"] = path
+            data["nurture"] = nurture
+            save_settings(data)
+        workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        try:
+            headers = next(workbook.active.iter_rows(values_only=True))
+            return {
+                "file_path": path,
+                "headers": [
+                    str(header).strip()
+                    for header in headers
+                    if header is not None and str(header).strip()
+                ],
+            }
+        finally:
+            workbook.close()
+
+    def get_nurture_headers(self):
+        path = get_nurture_config()["file_path"]
+        if not path:
+            return []
+        workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        try:
+            headers = next(workbook.active.iter_rows(values_only=True))
+            return [
+                str(header).strip()
+                for header in headers
+                if header is not None and str(header).strip()
+            ]
+        finally:
+            workbook.close()
 
     def get_file_path(self):
         return self._file_path
+
+    def get_master_headers(self):
+        if not self._file_path:
+            return []
+        workbook = openpyxl.load_workbook(
+            self._file_path, read_only=True, data_only=True
+        )
+        try:
+            headers = next(workbook.active.iter_rows(values_only=True), ())
+            return [
+                str(header).strip()
+                for header in headers
+                if header is not None and str(header).strip()
+            ]
+        finally:
+            workbook.close()
 
     def get_output_dir(self):
         if self._output_dir:
@@ -177,6 +250,21 @@ class JSAPI:
         if sources is not None:
             self._selected_sources = sources
         return sources or []
+
+    def get_classification_rules(self):
+        return get_classification_rules()
+
+    def get_configuration(self):
+        return get_configuration()
+
+    def update_configuration(self, changes):
+        return update_configuration(changes)
+
+    def save_classification_rules(self, rules):
+        return save_classification_rules(rules)
+
+    def reset_classification_rule(self, section):
+        return reset_classification_rule(section)
 
     def save_source_headers(self, sources: str):
         sources = json.loads(sources) if isinstance(sources, str) else sources
@@ -237,6 +325,12 @@ class JSAPI:
                 prior_date,
                 on_error=on_row_error,
             )
+            validation = validate_source_file(source_file)
+            if validation["missing"]:
+                raise ValueError(
+                    "Missing required columns: "
+                    + ", ".join(validation["missing"])
+                )
 
             step = "filter"
             if isinstance(selected_sources, str):
