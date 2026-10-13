@@ -2,6 +2,7 @@ import { useEffect, useReducer } from 'react';
 import { Listy, Button, Row, Col, Badge } from 'antd';
 import { ExportOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { useEffectEvent } from 'react';
 
 type Item = {
 	id: string;
@@ -46,11 +47,13 @@ export default function PyLog() {
 	const handleOpen = (path: string) => {
 		window.pywebview?.api?.open_dir(path);
 	};
-	useEffect(() => {
-		const sendMessage = (action: Omit<Action, 'id'> & { id?: string }) => {
+	const sendMessage = useEffectEvent(
+		(action: Omit<Action, 'id'> & { id?: string }) => {
 			action.id = Math.random().toString(36).substring(2, 9);
 			dispatch(action as Action);
-		};
+		}
+	);
+	useEffect(() => {
 		if (!window['CALL_METHODS']) {
 			window['CALL_METHODS'] = new Map();
 		}
@@ -58,7 +61,7 @@ export default function PyLog() {
 		return () => {
 			window['CALL_METHODS']?.delete('push_log');
 		};
-	}, [dispatch]);
+	}, []);
 	return (
 		<Listy<Item>
 			itemRender={item => (

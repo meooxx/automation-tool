@@ -20,7 +20,8 @@ import DirPicker from '../components/PyDirPicker';
 import LogDir from '../components/LogDir';
 import { SourceSelect, type Source } from '../components/SouceSelect';
 import { InfoCircleOutlined } from '@ant-design/icons';
-export const Route = createFileRoute('/')({ component: Home });
+import { useEffectEvent } from 'react';
+export const Route = createFileRoute('/')({ component: InnerRoot });
 
 declare global {
 	interface Window {
@@ -398,5 +399,22 @@ function Home() {
 			</div>
 		</>
 	);
+}
+
+function InnerRoot() {
+	const signalReady = useEffectEvent(() => {
+		window.pywebview?.api?.ready();
+	});
+	useEffect(() => {
+		// API may already be present (macOS), or arrive later (Windows WebView2).
+		if (window.pywebview?.api) {
+			signalReady();
+		}
+		window.addEventListener('pywebviewready', signalReady);
+		return () => {
+			window.removeEventListener('pywebviewready', signalReady);
+		};
+	}, []);
+	return <Home />;
 }
 

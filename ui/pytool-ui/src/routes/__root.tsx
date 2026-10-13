@@ -2,7 +2,6 @@ import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import { TanStackDevtools } from '@tanstack/react-devtools';
 import appCss from '../styles.css?url';
-import { useEffect } from 'react';
 
 export const Route = createRootRoute({
 	head: () => ({
@@ -29,19 +28,6 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-	useEffect(() => {
-		const signalReady = () => {
-			window.pywebview?.api?.ready();
-		};
-		// API may already be present (macOS), or arrive later (Windows WebView2).
-		if (window.pywebview?.api) {
-			signalReady();
-		}
-		window.addEventListener('pywebviewready', signalReady);
-		return () => {
-			window.removeEventListener('pywebviewready', signalReady);
-		};
-	}, []);
 	return (
 		<html lang="en">
 			<head>
