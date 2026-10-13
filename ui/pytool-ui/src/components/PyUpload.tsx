@@ -11,6 +11,10 @@ export default function PyUpload(p: {
 	onSuccess?: (data: {
 		file_path: string;
 		lead_sources: { text: string }[];
+		validation: {
+			found: Record<string, string>;
+			missing: string[];
+		};
 	}) => void;
 }) {
 	const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -70,4 +74,3 @@ export default function PyUpload(p: {
 		</>
 	);
 }
-

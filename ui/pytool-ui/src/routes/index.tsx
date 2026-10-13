@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import {
 	Card,
 	Row,
@@ -31,10 +31,20 @@ declare global {
 				// select_file: (filetype?: 'OPEN' | 'DIR') => Promise<string | null>;
 				select_dir: (savedir?: boolean) => Promise<string | null>;
 				get_file_path: () => Promise<string | null>;
+				get_master_headers: () => Promise<string[]>;
 				select_file: () => Promise<string | null>;
+				select_nurture_file: () => Promise<{
+					file_path: string;
+					headers: string[];
+				} | null>;
+				get_nurture_headers: () => Promise<string[]>;
 				select_file_and_get_lead_sources: () => Promise<{
 					file_path: string;
 					lead_sources: { key: string; text: string; aliases: string[] }[];
+					validation: {
+						found: Record<string, string>;
+						missing: string[];
+					};
 				} | null>;
 				process_file: (
 					curr: string,
@@ -49,6 +59,92 @@ declare global {
 				get_output_dir: () => Promise<string>;
 				save_source_headers: (sources: string) => Promise<void>;
 				get_source_headers: () => Promise<Source[]>;
+				get_classification_rules: () => Promise<{
+					direct_applicant_types: string[];
+					ic_postal_prefixes: string[];
+				}>;
+				get_configuration: () => Promise<{
+					classification_rules: {
+						direct_applicant_types: string[];
+						ic_postal_prefixes: string[];
+					};
+
+					mailable_conditions: Array<{
+						key: string;
+						label: string;
+						field: string;
+						mode: string;
+						enabled: boolean;
+						values: string[];
+					}>;
+					field_mapping: Record<string, string[]>;
+					settings_path: string;
+					settings_dir: string;
+					nurture: {
+						file_path: string;
+						report_field: string;
+						nurture_header: string;
+						enable: boolean;
+					};
+					[key: string]: unknown;
+				}>;
+				update_configuration: (changes: {
+					classification_rules: {
+						direct_applicant_types: string[];
+						ic_postal_prefixes: string[];
+					};
+					field_mapping?: Record<string, string[]>;
+					mailable_conditions?: Array<{
+						key: string;
+						label: string;
+						field: string;
+						mode: string;
+						enabled: boolean;
+						values: string[];
+					}>;
+					nurture?: {
+						file_path: string;
+						report_field: string;
+						nurture_header: string;
+						enable: boolean;
+					};
+					[key: string]: unknown;
+				}) => Promise<{
+					classification_rules: {
+						direct_applicant_types: string[];
+						ic_postal_prefixes: string[];
+					};
+
+					mailable_conditions: Array<{
+						key: string;
+						label: string;
+						field: string;
+						mode: string;
+						enabled: boolean;
+						values: string[];
+					}>;
+					nurture: {
+						file_path: string;
+						report_field: string;
+						nurture_header: string;
+						enable: boolean;
+					};
+					field_mapping: Record<string, string[]>;
+					[key: string]: unknown;
+				}>;
+				save_classification_rules: (rules: {
+					direct_applicant_types: string[];
+					ic_postal_prefixes: string[];
+				}) => Promise<{
+					direct_applicant_types: string[];
+					ic_postal_prefixes: string[];
+				}>;
+				reset_classification_rule: (
+					section: 'direct_applicant_types' | 'ic_postal_prefixes'
+				) => Promise<{
+					direct_applicant_types: string[];
+					ic_postal_prefixes: string[];
+				}>;
 			};
 		};
 		CALL_METHODS?: Map<string, (a: any) => void>;
@@ -61,7 +157,15 @@ function Home() {
 	const handleUploadSuccess = async (data: {
 		file_path: string;
 		lead_sources: { text: string }[];
+		validation: { found: Record<string, string>; missing: string[] };
 	}): Promise<void> => {
+		if (data.validation.missing.length > 0) {
+			messageApi.error(
+				`Missing required columns: ${data.validation.missing.join(', ')}`
+			);
+			setFilepath(null);
+			return;
+		}
 		messageApi.success(`Choosed: ${data.file_path}`);
 		setFilepath(data.file_path);
 		const map = new Map<string, Source>();
@@ -96,7 +200,8 @@ function Home() {
 	const [pre, setPre] = useState<dayjs.Dayjs | undefined>(
 		dayjs().subtract(1, 'month')
 	);
-	const disabled = curr === null || filepath === null || selectedSources.length === 0;
+	const disabled =
+		curr === null || filepath === null || selectedSources.length === 0;
 	const handleSelectedSourcesChange = (
 		_: string,
 		options?: Source | Source[]
@@ -177,7 +282,7 @@ function Home() {
 								layout="horizontal"
 								style={{ padding: '16px', width: '100%' }}
 							>
-								<Form.Item label="File" style={{ marginTop: '16px' }}>
+								<Form.Item required label="File" style={{ marginTop: '16px' }}>
 									<PyUpload
 										onChange={(path?: string) => setFilepath(path || null)}
 										onSuccess={handleUploadSuccess}
@@ -211,6 +316,7 @@ function Home() {
 								</Form.Item>
 								<Form.Item
 									name="sources"
+									required
 									rules={[
 										() => ({
 											validator(_) {
@@ -252,6 +358,9 @@ function Home() {
 									</Button>
 								</Form.Item>
 							</Form>
+							<Link to="/config">
+								<Button type="link">Advanced Config</Button>
+							</Link>
 						</Card>
 					</Col>
 					<Col sm={12} lg={12}>
@@ -290,3 +399,4 @@ function Home() {
 		</>
 	);
 }
+

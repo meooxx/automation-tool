@@ -4,21 +4,24 @@ import re
 
 from pytool.constants import (
     APPLICANT_TYPE_HEADER,
-    DECEASED_HEADER,
     DIRECT_VALUES,
-    EMAIL_BOUNCED_HEADER,
-    EMAIL_OPT_IN_HEADER,
-    EMAIL_OPT_OUT_HEADER,
-    FUTURE_STUDENTS_HEADER,
-    GEORGIAN_ID_HEADER,
     IC_POSTAL_PREFIXES,
+    NON_EMPTY_VALUE,
     PROSPECT_ID_HEADER,
     ZIP_HEADER,
 )
 from pytool.lead_source import lead_categories
-from pytool.read_source_data import find_header_index, year_month
-
-
+from pytool.read_source_data import (
+    find_configured_header_index,
+    year_month,
+)
+from pytool.settings import (
+    get_classification_rules,
+    get_field_mapping,
+    get_mailable_conditions,
+    get_nurture_config,
+)
+from pytool.nurture import load_nurture_values
 def get_cell(row: list, index: int) -> str:
     if index < 0 or index >= len(row) or row[index] is None:
         return ""
@@ -34,48 +37,59 @@ def postal_key(zip_code: str) -> str:
     return "".join(zip_code.split()).upper()
 
 
-def is_ic(zip_code: str) -> bool:
+def is_ic(zip_code: str, ic_postal_prefixes=IC_POSTAL_PREFIXES) -> bool:
     compact = postal_key(zip_code)
-    if not compact or not IC_POSTAL_PREFIXES:
+    if not compact or not ic_postal_prefixes:
         return False
-    if compact in IC_POSTAL_PREFIXES:
+    if compact in ic_postal_prefixes:
         return True
-    return compact[:3] in IC_POSTAL_PREFIXES
+    return compact[:3] in ic_postal_prefixes
 
 
-def is_direct(applicant_type: str) -> bool:
-    return normalize_value(applicant_type) in DIRECT_VALUES
+def is_direct(
+    applicant_type: str,
+    direct_values=DIRECT_VALUES,
+) -> bool:
+    return normalize_value(applicant_type) in {
+        normalize_value(value) for value in direct_values
+    }
 
 
-def is_flag_true(value: str) -> bool:
-    return normalize_value(value) in {"yes", "y", "true", "1"}
+def is_flag_true(value: str, true_values=None) -> bool:
+    values = true_values or ("Yes", "Y", "True", "1")
+    if NON_EMPTY_VALUE in values:
+        return bool((value or "").strip())
+    normalized = {normalize_value(item) for item in values}
+    return normalize_value(value) in normalized
 
 
 def is_mailable(
     row: list,
-    georgian_id_index: int,
-    deceased_index: int,
-    bounced_index: int,
-    opt_in_index: int,
-    email_opt_out_index: int,
-    future_students_index: int,
+    mailable_conditions=None,
+    condition_indices=None,
 ) -> bool:
-    if deceased_index != -1 and is_flag_true(get_cell(row, deceased_index)):
-        return False
-    if bounced_index != -1 and is_flag_true(get_cell(row, bounced_index)):
-        return False
-    if georgian_id_index != -1 and get_cell(row, georgian_id_index):
-        return False
-    if opt_in_index != -1 and not is_flag_true(get_cell(row, opt_in_index)):
-        return False
-    if email_opt_out_index != -1 and is_flag_true(
-        get_cell(row, email_opt_out_index)
-    ):
-        return False
-    if future_students_index != -1 and not is_flag_true(
-        get_cell(row, future_students_index)
-    ):
-        return False
+    """Apply configured mailable_conditions only (rules/values are settings legacy)."""
+    for condition in mailable_conditions or []:
+        if not condition.get("enabled", True):
+            continue
+        index = (condition_indices or {}).get(condition["key"], -1)
+        if index == -1:
+            continue
+        value = get_cell(row, index)
+        mode = condition["mode"]
+        values = condition.get("values", [])
+        matches_value = is_flag_true(value, values)
+        non_empty = bool(value)
+        if mode == "exclude_if_value" and matches_value:
+            return False
+        if mode == "require_value" and not matches_value:
+            return False
+        if mode == "exclude_if_non_empty" and non_empty:
+            return False
+        if mode == "require_non_empty" and not non_empty:
+            return False
+        if mode == "exclude_if_empty" and not non_empty:
+            return False
     return True
 
 
@@ -93,28 +107,37 @@ def unique_count(rows: list, id_i: int) -> int:
     return len(seen) + blank_count
 
 
-def mailable_count(rows: list, headers: list, on_error=None) -> int:
+def mailable_count(
+    rows: list,
+    headers: list,
+    on_error=None,
+    mailable_conditions=None,
+    nurture_values=None,
+) -> int:
     """Count unique rows that are mailable in the supplied cumulative range."""
-    georgian_id_index = find_header_index(headers, GEORGIAN_ID_HEADER)
-    deceased_index = find_header_index(headers, DECEASED_HEADER)
-    bounced_index = find_header_index(headers, EMAIL_BOUNCED_HEADER)
-    opt_in_index = find_header_index(headers, EMAIL_OPT_IN_HEADER)
-    future_students_index = find_header_index(headers, FUTURE_STUDENTS_HEADER)
-    email_opt_out_index = find_header_index(headers, EMAIL_OPT_OUT_HEADER)
-    prospect_id_index = find_header_index(headers, PROSPECT_ID_HEADER)
+    mapping = get_field_mapping()
+    prospect_id_index = find_configured_header_index(
+        headers, mapping["prospect_id"], PROSPECT_ID_HEADER
+    )
+    condition_indices = {
+        condition["key"]: find_configured_header_index(
+            headers,
+            mapping.get(condition["field"], [condition["field"]]),
+            [condition["field"]],
+        )
+        for condition in (mailable_conditions or [])
+    }
 
     mailable_rows = []
+    nurture_field = get_nurture_config()["report_field"]
+    nurture_index = find_configured_header_index(
+        headers, mapping.get(nurture_field, [nurture_field]), [nurture_field]
+    )
     for row_number, row in enumerate(rows, start=1):
         try:
-            if is_mailable(
-                row,
-                georgian_id_index,
-                deceased_index,
-                bounced_index,
-                opt_in_index,
-                email_opt_out_index,
-                future_students_index,
-            ):
+            if nurture_values and nurture_index != -1 and get_cell(row, nurture_index) in nurture_values:
+                continue
+            if is_mailable(row, mailable_conditions, condition_indices):
                 mailable_rows.append(row)
         except Exception as e:
             if on_error:
@@ -180,7 +203,13 @@ def rows_through_month(rows: list, joined_i: int, through_ym: tuple[int, int]) -
     return kept
 
 
-def _split_quadrants(rows: list, zip_i: int, type_i: int, on_error=None) -> dict[str, list]:
+def _split_quadrants(
+    rows: list,
+    zip_i: int,
+    type_i: int,
+    on_error=None,
+    classification_rules=None,
+) -> dict[str, list]:
     buckets = {
         "direct_ic": [],
         "direct_ooc": [],
@@ -189,8 +218,14 @@ def _split_quadrants(rows: list, zip_i: int, type_i: int, on_error=None) -> dict
     }
     for i, row in enumerate(rows, start=1):
         try:
-            ic = is_ic(get_cell(row, zip_i))
-            direct = is_direct(get_cell(row, type_i))
+            ic = is_ic(
+                get_cell(row, zip_i),
+                classification_rules["ic_postal_prefixes"],
+            )
+            direct = is_direct(
+                get_cell(row, type_i),
+                classification_rules["direct_applicant_types"],
+            )
             if direct and ic:
                 buckets["direct_ic"].append(row)
             elif direct:
@@ -207,8 +242,9 @@ def _split_quadrants(rows: list, zip_i: int, type_i: int, on_error=None) -> dict
 
 def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
     headers = source["headers"]
-    zip_i = find_header_index(headers, ZIP_HEADER)
-    type_i = find_header_index(headers, APPLICANT_TYPE_HEADER)
+    mapping = get_field_mapping()
+    zip_i = find_configured_header_index(headers, mapping["zip"], ZIP_HEADER)
+    type_i = find_configured_header_index(headers, mapping["applicant_type"], APPLICANT_TYPE_HEADER)
     leader_i = source.get("leader_index", -1)
     joined_i = source.get("joined_index", -1)
     if zip_i == -1:
@@ -221,11 +257,18 @@ def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
         raise ValueError("no Joined column")
 
     categories = lead_categories(selected_sources)
-    prospect_id_index = find_header_index(headers, PROSPECT_ID_HEADER)
+    classification_rules = get_classification_rules()
+    mailable_conditions = get_mailable_conditions()
+    nurture_values = load_nurture_values()
+    prospect_id_index = find_configured_header_index(
+        headers, mapping["prospect_id"], PROSPECT_ID_HEADER
+    )
 
     def split(rows: list) -> dict:
         return {
-            **_split_quadrants(rows, zip_i, type_i, on_error),
+            **_split_quadrants(
+                rows, zip_i, type_i, on_error, classification_rules
+            ),
             **_split_lead_sources(rows, leader_i, categories, on_error),
         }
 
@@ -238,17 +281,19 @@ def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
         "current": current,
         "prior": prior,
         "lead_categories": categories,
-        # Salesforce may already apply these rules; applying them again is
-        # intentionally retained as a defensive, idempotent check.
         "current_mailable": mailable_count(
             rows_through_month(dated, joined_i, current_ym),
             headers,
             on_error,
+            mailable_conditions,
+            nurture_values,
         ),
         "prior_mailable": mailable_count(
             rows_through_month(dated, joined_i, prior_ym),
             headers,
             on_error,
+            mailable_conditions,
+            nurture_values,
         ),
         "new_this_month": unique_count(source["current"], prospect_id_index),
         "new_prior_month": unique_count(source["prior"], prospect_id_index),

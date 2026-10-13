@@ -43,11 +43,10 @@ DEFAULT_CATEGORY_HEADER = [
 
 
 # Direct: these exact normalized values. Everything else is Non-direct.
-DIRECT_VALUES = {
-    "direct",
-    "direct from high school",
-    "direct from secondary school",
-}
+DIRECT_VALUES = (
+    "Direct",
+    "Direct from High School",
+)
 
 # IC vs OOC from Zip (column T). Official "Zip begins with" prefixes from client.
 ZIP_HEADER = ["T", "Zip", re.compile(r"(?i)^zip$")]
@@ -60,6 +59,82 @@ IC_POSTAL_PREFIXES = frozenset({
     "P0A", "P0B", "P0C",
     "P1H", "P1L", "P1P",
 })
+DEFAULT_IC_POSTAL_PREFIXES = tuple(sorted(IC_POSTAL_PREFIXES))
+
+
+NON_EMPTY_VALUE = "__NON_EMPTY__"
+
+DEFAULT_MAILABLE_CONDITIONS = [
+    {
+        "key": "exclude_deceased",
+        "label": "Exclude deceased",
+        "field": "deceased",
+        "mode": "exclude_if_value",
+        "enabled": True,
+        "values": ["Yes", "Y", "True", "1"],
+    },
+    {
+        "key": "exclude_bounced",
+        "label": "Exclude bounced email",
+        "field": "email_bounced",
+        "mode": "exclude_if_value",
+        "enabled": True,
+        "values": ["Yes", "Y", "True", "1"],
+    },
+    {
+        "key": "exclude_georgian_id",
+        "label": "Exclude Georgian ID",
+        "field": "georgian_id",
+        "mode": "exclude_if_non_empty",
+        "enabled": True,
+        "values": [],
+    },
+    {
+        "key": "require_email_opt_in",
+        "label": "Require email opt in",
+        "field": "email_opt_in",
+        "mode": "require_value",
+        "enabled": True,
+        "values": ["Yes", "Y", "True", "1"],
+    },
+    {
+        "key": "exclude_opted_out",
+        "label": "Exclude opted out",
+        "field": "email_opted_out",
+        "mode": "exclude_if_value",
+        "enabled": True,
+        "values": ["Yes", "Y", "True", "1"],
+    },
+    {
+        "key": "require_future_students_updates",
+        "label": "Require future students updates",
+        "field": "future_students_updates",
+        "mode": "require_value",
+        "enabled": True,
+        "values": ["Yes", "Y", "True", "1"],
+    },
+]
+
+DEFAULT_FIELD_MAPPING = {
+    "joined": ["Joined"],
+    "lead_source": ["Lead Source - Most Recent", "Lead Source"],
+    "prospect_id": ["Prospect Id"],
+    "zip": ["Zip"],
+    "applicant_type": ["OH Applicant Type"],
+    "georgian_id": ["Georgian ID"],
+    "deceased": ["Deceased"],
+    "email_bounced": ["Email Bounced"],
+    "email_opt_in": ["Email Opt In"],
+    "email_opted_out": ["Opted Out", "Email Opt Out"],
+    "future_students_updates": ["Updates for future students"],
+}
+
+DEFAULT_NURTURE_CONFIG = {
+    "file_path": "",
+    "report_field": "Prospect Id",
+    "nurture_header": "",
+    "enable": False,
+}
 
 APPLICANT_TYPE_HEADER = [
     "DJ",

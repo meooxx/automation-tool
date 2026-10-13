@@ -4,36 +4,23 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from pathlib import Path
+import re
+import dateutil
 
 from openpyxl import load_workbook
 from openpyxl.utils import column_index_from_string
 from pytool.constants import JOINED_HEADER, LEADER_HEADER
-
-DATE_FORMATS = (
-    "%m/%d/%Y",
-    "%Y-%m-%d",
-    "%m/%d/%Y %H:%M:%S",
-    "%Y-%m-%d %H:%M:%S",
-    "%Y-%m-%d %H:%M",
-    "%Y-%m",
-)
+from pytool.settings import get_field_mapping, get_mailable_conditions
 
 
 def to_datetime(value) -> datetime | None:
     if value is None or value == "":
         return None
-    if isinstance(value, datetime):
+    if isinstance(value, (date, datetime)):
         return value
-    if isinstance(value, date):
-        return datetime(value.year, value.month, value.day)
-    text = str(value).strip()
-    for fmt in DATE_FORMATS:
-        try:
-            return datetime.strptime(text, fmt)
-        except ValueError:
-            continue
+    if isinstance(value, str):
+        return dateutil.parse(value.strip())
     return None
-
 
 def year_month(value) -> tuple[int, int] | None:
     dt = to_datetime(value)
@@ -66,6 +53,72 @@ def find_header_index(headers: list, spec: list) -> int:
     return -1
 
 
+def find_configured_header_index(
+    headers: list,
+    names: list[str],
+    fallback: list,
+) -> int:
+    normalized = {normalize_header(name) for name in names if str(name).strip()}
+    for index, header in enumerate(headers):
+        if normalize_header(header) in normalized:
+            return index
+    return find_header_index(headers, fallback)
+
+
+def normalize_header(value) -> str:
+    """Normalize harmless Excel/Salesforce header formatting differences."""
+    text = "" if value is None else str(value).strip().casefold()
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", text).split())
+
+
+def validate_headers(headers: list) -> dict[str, list[str]]:
+    mapping = get_field_mapping()
+    conditions = get_mailable_conditions()
+    required = {
+        "joined",
+        "lead_source",
+        "zip",
+        "applicant_type",
+    }
+    required.update(
+        condition["field"]
+        for condition in conditions
+        if condition["enabled"]
+    )
+    found = {}
+    missing = []
+    for field in sorted(required):
+        names = mapping.get(field, [field])
+        normalized_names = {
+            normalize_header(name) for name in names if str(name).strip()
+        }
+        index = next(
+            (
+                header_index
+                for header_index, header in enumerate(headers)
+                if normalize_header(header) in normalized_names
+            ),
+            -1,
+        )
+        if index == -1:
+            missing.append(field)
+        else:
+            found[field] = headers[index]
+    return {"missing": missing, "found": found}
+
+
+def validate_source_file(path) -> dict[str, list[str]]:
+    wb = load_workbook(path, data_only=True, read_only=True)
+    ws = wb.active
+    rows = ws.iter_rows(values_only=True)
+    header_row = next(rows, None)
+    wb.close()
+    if header_row is None:
+        raise ValueError(f"empty workbook: {path}")
+    headers = ["" if h is None else str(h) for h in header_row]
+    return validate_headers(headers)
+
+
 def read_source_data(
     path,
     current_date,
@@ -93,8 +146,13 @@ def read_source_data(
         raise ValueError(f"empty workbook: {path}")
 
     headers = ["" if h is None else str(h) for h in header_row]
-    joined_i = find_header_index(headers, joined_header)
-    leader_i = find_header_index(headers, leader_header)
+    mapping = get_field_mapping()
+    joined_i = find_configured_header_index(
+        headers, mapping["joined"], joined_header
+    )
+    leader_i = find_configured_header_index(
+        headers, mapping["lead_source"], leader_header
+    )
     if joined_i == -1:
         wb.close()
         raise ValueError("no Joined column in header row")
@@ -155,7 +213,9 @@ def list_lead_sources(path, leader_header=LEADER_HEADER) -> list[dict]:
         wb.close()
         raise ValueError(f"empty workbook: {path}")
     headers = ["" if h is None else str(h) for h in header_row]
-    leader_i = find_header_index(headers, leader_header)
+    leader_i = find_configured_header_index(
+        headers, get_field_mapping()["lead_source"], leader_header
+    )
     if leader_i == -1:
         wb.close()
         raise ValueError("no Lead Source column in header row")
