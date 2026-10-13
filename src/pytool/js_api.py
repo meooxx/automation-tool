@@ -309,7 +309,7 @@ class JSAPI:
             outdir_path.mkdir(parents=True, exist_ok=True)
             current_date = datetime.strptime(current_month, "%Y-%m")
             prior_date = datetime.strptime(prior_month, "%Y-%m")
-
+            self._push_log(step, icon="processing")
             def on_row_error(err_step, row_no, row, err):
                 try:
                     data = json.dumps(row, default=str, ensure_ascii=False)
@@ -319,6 +319,7 @@ class JSAPI:
                              err_step, row_no, err, data)
 
             step = "read source"
+            self._push_log(step, icon="processing")
             originData = read_source_data(
                 source_file,
                 current_date,
@@ -332,7 +333,7 @@ class JSAPI:
                     + ", ".join(validation["missing"])
                 )
 
-            step = "filter"
+            step = "filter source data by rules"
             if isinstance(selected_sources, str):
                 selected_sources = json.loads(selected_sources)
             if selected_sources is None:
@@ -347,7 +348,7 @@ class JSAPI:
             year = current_date.year
             month = current_date.strftime("%m")
             headers = originData["headers"]
-
+            self._push_log(step, icon="processing")
             step = "write Direct IC"
             _write_workbook(
                 outdir_path /

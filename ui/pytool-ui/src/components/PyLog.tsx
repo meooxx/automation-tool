@@ -101,7 +101,7 @@ export default function PyLog() {
 			)}
 			virtual
 			items={logs}
-			height={400}
+			height={600}
 			rowKey="id"
 		/>
 	);
