@@ -1,5 +1,28 @@
-pywebview>=5.0
-python-dotenv>=1.0
-openpyxl>=3.1.5
-pyinstaller>=6.0
-pywin32>=306; sys_platform == "win32"
+altgraph==0.17.5
+bottle==0.13.4
+et_xmlfile==2.0.0
+iniconfig==2.3.0
+load-dotenv==0.1.0
+macholib==1.16.4
+openpyxl==3.1.5
+packaging==26.3
+pillow==12.3.0
+pluggy==1.6.0
+proxy_tools==0.1.0
+Pygments==2.21.0
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.8
+pyobjc-core==12.2.2
+pyobjc-framework-Cocoa==12.2.2
+pyobjc-framework-Quartz==12.2.2
+pyobjc-framework-Security==12.2.2
+pyobjc-framework-UniformTypeIdentifiers==12.2.2
+pyobjc-framework-WebKit==12.2.2
+pytest==9.1.1
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.3
+-e git+ssh://git@github.com/meooxx/automation-tool.git@9b79998a456dc9d4e99fcbab3d34f83a7e996248#egg=pytool
+pywebview==6.2.1
+setuptools==84.0.0
+six==1.17.0
+typing_extensions==4.16.0
