@@ -382,7 +382,7 @@ function Home() {
 									<LogDir />
 								</Flex>
 							]}
-							title="Run Logs"
+							title="Running Logs"
 							styles={cardStyles}
 							style={{
 								height: '100%',

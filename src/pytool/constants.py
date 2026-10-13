@@ -70,7 +70,7 @@ DEFAULT_MAILABLE_CONDITIONS = [
         "label": "Exclude deceased",
         "field": "deceased",
         "mode": "exclude_if_value",
-        "enabled": True,
+        "enabled": False,
         "values": ["Yes", "Y", "True", "1"],
     },
     {
@@ -78,7 +78,7 @@ DEFAULT_MAILABLE_CONDITIONS = [
         "label": "Exclude bounced email",
         "field": "email_bounced",
         "mode": "exclude_if_value",
-        "enabled": True,
+        "enabled": False,
         "values": ["Yes", "Y", "True", "1"],
     },
     {
@@ -86,7 +86,7 @@ DEFAULT_MAILABLE_CONDITIONS = [
         "label": "Exclude Georgian ID",
         "field": "georgian_id",
         "mode": "exclude_if_non_empty",
-        "enabled": True,
+        "enabled": False,
         "values": [],
     },
     {
@@ -94,7 +94,7 @@ DEFAULT_MAILABLE_CONDITIONS = [
         "label": "Require email opt in",
         "field": "email_opt_in",
         "mode": "require_value",
-        "enabled": True,
+        "enabled": False,
         "values": ["Yes", "Y", "True", "1"],
     },
     {
@@ -102,7 +102,7 @@ DEFAULT_MAILABLE_CONDITIONS = [
         "label": "Exclude opted out",
         "field": "email_opted_out",
         "mode": "exclude_if_value",
-        "enabled": True,
+        "enabled": False,
         "values": ["Yes", "Y", "True", "1"],
     },
     {
@@ -110,7 +110,7 @@ DEFAULT_MAILABLE_CONDITIONS = [
         "label": "Require future students updates",
         "field": "future_students_updates",
         "mode": "require_value",
-        "enabled": True,
+        "enabled": False,
         "values": ["Yes", "Y", "True", "1"],
     },
 ]
@@ -125,14 +125,14 @@ DEFAULT_FIELD_MAPPING = {
     "deceased": ["Deceased"],
     "email_bounced": ["Email Bounced"],
     "email_opt_in": ["Email Opt In"],
-    "email_opted_out": ["Opted Out", "Email Opt Out"],
+    "email_opted_out": ["Opted Out"],
     "future_students_updates": ["Updates for future students"],
 }
 
 DEFAULT_NURTURE_CONFIG = {
     "file_path": "",
     "report_field": "Prospect Id",
-    "nurture_header": "",
+    "nurture_header": "Prospect Id",
     "enable": False,
 }
 
