@@ -41,7 +41,7 @@ declare global {
 				get_nurture_headers: () => Promise<string[]>;
 				select_file_and_get_lead_sources: () => Promise<{
 					file_path: string;
-					lead_sources: { key: string; text: string; aliases: string[] }[];
+					lead_sources: { text: string }[];
 					validation: {
 						found: Record<string, string>;
 						missing: string[];
@@ -193,6 +193,10 @@ function Home() {
 		setLeadSources(newSources);
 		dirPickerRef.current?.updateDir();
 	};
+	const handleUploadError = (msg: string) => {
+		messageApi.error(msg);
+		setFilepath(null);
+	};
 	const [isPedding, startTransition] = useTransition();
 	const [filepath, setFilepath] = useState<string | null>(null);
 	const [leadSources, setLeadSources] = useState<Source[]>([]);
@@ -287,6 +291,7 @@ function Home() {
 									<PyUpload
 										onChange={(path?: string) => setFilepath(path || null)}
 										onSuccess={handleUploadSuccess}
+										onError={handleUploadError}
 									></PyUpload>
 								</Form.Item>
 								<Form.Item

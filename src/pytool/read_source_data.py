@@ -5,21 +5,33 @@ from __future__ import annotations
 from datetime import date, datetime
 from pathlib import Path
 import re
-import dateutil
 
-from openpyxl import load_workbook
+from dateutil import parser as dateutil_parser
 from openpyxl.utils import column_index_from_string
+from python_calamine import CalamineWorkbook
+
 from pytool.constants import JOINED_HEADER, LEADER_HEADER
 from pytool.settings import get_field_mapping, get_mailable_conditions
+
+
+def load_sheet_rows(path) -> list[list]:
+    """Load active sheet as a list of rows via calamine (fast full-table read)."""
+    wb = CalamineWorkbook.from_path(str(path))
+    rows = wb.get_sheet_by_index(0).to_python()
+    if not rows:
+        raise ValueError(f"empty workbook: {path}")
+    return rows
 
 
 def to_datetime(value) -> datetime | None:
     if value is None or value == "":
         return None
-    if isinstance(value, (date, datetime)):
+    if isinstance(value, datetime):
         return value
+    if isinstance(value, date):
+        return datetime(value.year, value.month, value.day)
     if isinstance(value, str):
-        return dateutil.parse(value.strip())
+        return dateutil_parser.parse(value.strip())
     return None
 
 def year_month(value) -> tuple[int, int] | None:
@@ -107,16 +119,39 @@ def validate_headers(headers: list) -> dict[str, list[str]]:
     return {"missing": missing, "found": found}
 
 
+def inspect_source_file(
+    path,
+    leader_header=LEADER_HEADER,
+) -> dict:
+    """One calamine read: header validation + unique Lead Source texts."""
+    rows = load_sheet_rows(path)
+    headers = ["" if h is None else str(h) for h in rows[0]]
+    validation = validate_headers(headers)
+    leader_i = find_configured_header_index(
+        headers, get_field_mapping()["lead_source"], leader_header
+    )
+    seen: list[str] = []
+    seen_set: set[str] = set()
+    if leader_i != -1:
+        for values in rows[1:]:
+            if values is None or leader_i >= len(values):
+                continue
+            raw = values[leader_i]
+            text = "" if raw is None else str(raw).strip()
+            if not text or text in seen_set:
+                continue
+            seen_set.add(text)
+            seen.append(text)
+    return {
+        "validation": validation,
+        "lead_sources": [
+            {"text": text} for text in sorted(seen, key=str.casefold)
+        ],
+    }
+
+
 def validate_source_file(path) -> dict[str, list[str]]:
-    wb = load_workbook(path, data_only=True, read_only=True)
-    ws = wb.active
-    rows = ws.iter_rows(values_only=True)
-    header_row = next(rows, None)
-    wb.close()
-    if header_row is None:
-        raise ValueError(f"empty workbook: {path}")
-    headers = ["" if h is None else str(h) for h in header_row]
-    return validate_headers(headers)
+    return inspect_source_file(path)["validation"]
 
 
 def read_source_data(
@@ -137,15 +172,8 @@ def read_source_data(
     if prior_ym is None:
         raise ValueError(
             "prior_date must be a date or datetime, or a supported date string")
-    wb = load_workbook(path, data_only=True, read_only=True)
-    ws = wb.active
-    rows = ws.iter_rows(values_only=True)
-    header_row = next(rows, None)
-    if header_row is None:
-        wb.close()
-        raise ValueError(f"empty workbook: {path}")
-
-    headers = ["" if h is None else str(h) for h in header_row]
+    sheet_rows = load_sheet_rows(path)
+    headers = ["" if h is None else str(h) for h in sheet_rows[0]]
     mapping = get_field_mapping()
     joined_i = find_configured_header_index(
         headers, mapping["joined"], joined_header
@@ -154,16 +182,14 @@ def read_source_data(
         headers, mapping["lead_source"], leader_header
     )
     if joined_i == -1:
-        wb.close()
         raise ValueError("no Joined column in header row")
     if leader_i == -1:
-        wb.close()
         raise ValueError("no Lead Source column in header row")
 
     current = []
     prior = []
     dated = []
-    for excel_row, values in enumerate(rows, start=2):
+    for excel_row, values in enumerate(sheet_rows[1:], start=2):
         try:
             if values is None or all(v is None or str(v).strip() == "" for v in values):
                 continue
@@ -188,7 +214,6 @@ def read_source_data(
                     f"{type(e).__name__}: {e}",
                 )
             continue
-    wb.close()
 
     return {
         "headers": headers,
@@ -204,31 +229,7 @@ def read_source_data(
 
 def list_lead_sources(path, leader_header=LEADER_HEADER) -> list[dict]:
     """Unique non-empty Lead Source texts for the dropdown. No Other/Blank."""
-    path = Path(path)
-    wb = load_workbook(path, data_only=True, read_only=True)
-    ws = wb.active
-    rows = ws.iter_rows(values_only=True)
-    header_row = next(rows, None)
-    if header_row is None:
-        wb.close()
-        raise ValueError(f"empty workbook: {path}")
-    headers = ["" if h is None else str(h) for h in header_row]
-    leader_i = find_configured_header_index(
-        headers, get_field_mapping()["lead_source"], leader_header
-    )
-    if leader_i == -1:
-        wb.close()
+    result = inspect_source_file(path, leader_header=leader_header)
+    if "lead_source" in result["validation"]["missing"]:
         raise ValueError("no Lead Source column in header row")
-    seen: list[str] = []
-    seen_set: set[str] = set()
-    for values in rows:
-        if values is None or leader_i >= len(values):
-            continue
-        raw = values[leader_i]
-        text = "" if raw is None else str(raw).strip()
-        if not text or text in seen_set:
-            continue
-        seen_set.add(text)
-        seen.append(text)
-    wb.close()
-    return [{"text": text} for text in sorted(seen, key=str.casefold)]
+    return result["lead_sources"]

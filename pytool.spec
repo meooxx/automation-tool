@@ -18,6 +18,7 @@ hiddenimports = [
     "pytool.paths",
     "webview",
     "openpyxl",
+    "python_calamine",
     "dotenv",
 ]
 
@@ -28,6 +29,11 @@ webview_datas, webview_binaries, webview_hidden = collect_all("webview")
 datas += webview_datas
 binaries += webview_binaries
 hiddenimports += webview_hidden
+
+calamine_datas, calamine_binaries, calamine_hidden = collect_all("python_calamine")
+datas += calamine_datas
+binaries += calamine_binaries
+hiddenimports += calamine_hidden
 
 a = Analysis(
     [str(ROOT / "src" / "pytool" / "__main__.py")],

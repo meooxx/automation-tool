@@ -13,6 +13,7 @@ import webview
 from pytool.channel_report import write_channel_performance
 from pytool.filter_by_rules import filter_by_rules
 from pytool.read_source_data import (
+    inspect_source_file,
     list_lead_sources,
     read_source_data,
     validate_source_file,
@@ -126,15 +127,14 @@ class JSAPI:
 
     def select_file_and_get_lead_sources(self):
         path = self.select_file()
-        if path:
-            sources = list_lead_sources(path)
-            validation = validate_source_file(path)
-            return {
-                "file_path": path,
-                "lead_sources": sources,
-                "validation": validation,
-            }
-        return None
+        if not path:
+            return None
+        result = inspect_source_file(path)
+        return {
+            "file_path": path,
+            "lead_sources": result["lead_sources"],
+            "validation": result["validation"],
+        }
 
     def select_nurture_file(self):
         path = self.select_file_impl("OPEN")
