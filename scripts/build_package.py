@@ -15,7 +15,9 @@ SPEC = ROOT / "pytool.spec"
 def python_executable() -> str:
     candidates = (
         ROOT / ".venv" / "bin" / "python",
+        ROOT / ".venv" / "Scripts" / "python.exe",
         Path(sys.prefix) / "bin" / "python",
+        Path(sys.prefix) / "Scripts" / "python.exe",
     )
     for candidate in candidates:
         if candidate.is_file():
@@ -28,7 +30,31 @@ def run(command: list[str], cwd: Path) -> None:
     subprocess.run(command, cwd=cwd, check=True)
 
 
+def ensure_packaging_imports(python: str) -> None:
+    """Fail early if the packaging env is missing modules the frozen app needs."""
+    required = ("webview", "openpyxl", "python_calamine", "dotenv")
+    script = (
+        "import importlib.util\n"
+        f"missing=[m for m in {required!r} if importlib.util.find_spec(m) is None]\n"
+        "raise SystemExit(', '.join(missing) if missing else 0)\n"
+    )
+    result = subprocess.run(
+        [python, "-c", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        missing = (result.stdout or result.stderr or "").strip() or "unknown"
+        raise RuntimeError(
+            "Packaging environment is missing required modules: "
+            f"{missing}. Install with: pip install -r requirements.txt"
+        )
+
+
 def main() -> None:
+    python = python_executable()
+    ensure_packaging_imports(python)
     yarn = shutil.which("yarn.cmd") or shutil.which("yarn")
     if yarn is None:
         raise RuntimeError("yarn is required to build the frontend before packaging.")
@@ -41,7 +67,7 @@ def main() -> None:
         )
     run(
         [
-            python_executable(),
+            python,
             "-m",
             "PyInstaller",
             "--clean",

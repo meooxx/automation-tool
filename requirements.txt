@@ -1,8 +1,12 @@
-load-dotenv==0.1.0
-pillow==12.3.0
-pip==26.2.1
+# Runtime (must match pyproject.toml)
+pywebview>=5.0
+python-dotenv>=1.0
+openpyxl>=3.1
+python-calamine>=0.8
+python-dateutil>=2.9
+pywin32>=306; sys_platform == "win32"
+
+# Build / test
 pyinstaller==6.22.3
 pytest==9.1.1
-python-calamine>=0.8
-python-dateutil==2.9.0.post0
-openpyxl>=3.1
+pillow==12.3.0
