@@ -11,10 +11,7 @@ from pytool.constants import (
     ZIP_HEADER,
 )
 from pytool.lead_source import lead_categories
-from pytool.read_source_data import (
-    find_configured_header_index,
-    year_month,
-)
+from pytool.read_source_data import find_configured_header_index
 from pytool.settings import (
     get_classification_rules,
     get_field_mapping,
@@ -114,7 +111,7 @@ def mailable_count(
     mailable_conditions=None,
     nurture_values=None,
 ) -> int:
-    """Count unique rows that are mailable in the supplied cumulative range."""
+    """Count unique mailable rows in the supplied month slice."""
     mapping = get_field_mapping()
     prospect_id_index = find_configured_header_index(
         headers, mapping["prospect_id"], PROSPECT_ID_HEADER
@@ -193,16 +190,6 @@ def _split_lead_sources(
     return buckets
 
 
-def rows_through_month(rows: list, joined_i: int, through_ym: tuple[int, int]) -> list:
-    kept = []
-    for row in rows:
-        joined = row[joined_i] if joined_i < len(row) else None
-        ym = year_month(joined)
-        if ym is not None and ym <= through_ym:
-            kept.append(row)
-    return kept
-
-
 def _split_quadrants(
     rows: list,
     zip_i: int,
@@ -274,22 +261,20 @@ def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
 
     current = split(source["current"])
     prior = split(source["prior"])
-    dated = source.get("all", source["current"] + source["prior"])
-    current_ym = source["current_ym"]
-    prior_ym = source["prior_ym"]
     return {
         "current": current,
         "prior": prior,
         "lead_categories": categories,
+        # Total mailable = mailable among prospects who Joined that month only.
         "current_mailable": mailable_count(
-            rows_through_month(dated, joined_i, current_ym),
+            source["current"],
             headers,
             on_error,
             mailable_conditions,
             nurture_values,
         ),
         "prior_mailable": mailable_count(
-            rows_through_month(dated, joined_i, prior_ym),
+            source["prior"],
             headers,
             on_error,
             mailable_conditions,
