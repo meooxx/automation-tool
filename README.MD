@@ -12,8 +12,8 @@ python scripts/build_package.py
 
 The command builds the frontend first, verifies that
 `ui/pytool-ui/dist/client/index.html`
-exists, and only then runs PyInstaller. If the frontend artifact is missing,
-packaging stops instead of producing an unusable application.
+exists, and only then runs Nuitka (standalone). If the frontend artifact is
+missing, packaging stops instead of producing an unusable application.
 
 The packaged application serves the frontend through a temporary HTTP server
 bound to `127.0.0.1` and opens that URL in pywebview. It does not load the
@@ -29,8 +29,8 @@ that file exists. The Windows icon is optional on other platforms.
 ### Running the packaged application
 
 End users do not need Python, Node.js, npm, Yarn, pip, or the frontend
-dependencies. Distribute the complete PyInstaller folder, including
-`pytool.exe` and `_internal`.
+dependencies. Distribute the complete Nuitka standalone folder (everything
+next to `pytool.exe`).
 
 The Windows build uses the Edge WebView2 runtime through pywebview. WebView2
 is normally included with Windows 11 and is also preinstalled on many current
@@ -141,7 +141,8 @@ The complete one-folder package is created at:
 ```text
 dist\pytool\
 ├── pytool.exe
-└── _internal\
+├── ui\dist\...
+└── (DLLs and package data next to the exe)
 ```
 
 Run it with:
@@ -151,8 +152,8 @@ dist\pytool\pytool.exe
 ```
 
 Keep the complete `dist\pytool` directory together. Do not copy only
-`pytool.exe`; the `_internal` directory contains the Python runtime, pywebview
-dependencies, frontend files, and other required resources.
+`pytool.exe`; the sibling files contain the runtime, pywebview / pythonnet
+bits, frontend files, and other required resources.
 
 If the computer reports that `npm.ps1` or `yarn.ps1` cannot be loaded because
 script execution is disabled, use `npm.cmd` or `yarn.cmd` explicitly. This is

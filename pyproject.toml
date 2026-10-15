@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-build = ["pyinstaller>=6.0"]
+build = ["nuitka>=2.5", "ordered-set>=4.1", "zstandard>=0.22"]
 
 [project.scripts]
 pytool = "pytool.app:run"

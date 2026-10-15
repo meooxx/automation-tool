@@ -16,27 +16,34 @@ hiddenimports = [
     "pytool.js_api",
     "pytool.read_source_data",
     "pytool.paths",
+    "pytool.win_motw",
     "webview",
     "webview.platforms",
     "webview.platforms.edgechromium",
     "webview.platforms.winforms",
+    "webview.guilib",
     "openpyxl",
     "python_calamine",
     "dotenv",
+    "clr",
+    "clr_loader",
+    "pythonnet",
 ]
 
 if UI_DIST.is_dir():
     datas.append((str(UI_DIST), "ui/dist"))
 
-webview_datas, webview_binaries, webview_hidden = collect_all("webview")
-datas += webview_datas
-binaries += webview_binaries
-hiddenimports += webview_hidden
+for package in ("webview", "python_calamine", "pythonnet", "clr_loader"):
+    try:
+        pkg_datas, pkg_binaries, pkg_hidden = collect_all(package)
+    except Exception:
+        continue
+    datas += pkg_datas
+    binaries += pkg_binaries
+    hiddenimports += pkg_hidden
 
-calamine_datas, calamine_binaries, calamine_hidden = collect_all("python_calamine")
-datas += calamine_datas
-binaries += calamine_binaries
-hiddenimports += calamine_hidden
+# UPX breaks pythonnet DLLs on Windows.
+use_upx = sys.platform != "win32"
 
 a = Analysis(
     [str(ROOT / "src" / "pytool" / "__main__.py")],
@@ -58,7 +65,7 @@ exe_options = dict(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=use_upx,
     console=False,
     disable_windowed_traceback=False,
 )
@@ -78,6 +85,6 @@ coll = COLLECT(
     a.binaries,
     a.datas,
     strip=False,
-    upx=True,
+    upx=use_upx,
     name="pytool",
 )

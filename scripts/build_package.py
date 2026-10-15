@@ -1,5 +1,8 @@
+"""Build frontend, then package the desktop app with Nuitka (standalone)."""
+
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -9,7 +12,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 UI_DIR = ROOT / "ui" / "pytool-ui"
 UI_INDEX = UI_DIR / "dist" / "client" / "index.html"
-SPEC = ROOT / "pytool.spec"
+UI_DIST = UI_DIR / "dist"
+ENTRY = ROOT / "packaging" / "entry.py"
+WINDOWS_ICON = ROOT / "assets" / "pytool.ico"
+DIST_DIR = ROOT / "dist"
+OUT_NAME = "pytool"
 
 
 def python_executable() -> str:
@@ -25,14 +32,16 @@ def python_executable() -> str:
     return sys.executable
 
 
-def run(command: list[str], cwd: Path) -> None:
+def run(command: list[str], cwd: Path, env: dict | None = None) -> None:
     print(f"> {' '.join(command)}", flush=True)
-    subprocess.run(command, cwd=cwd, check=True)
+    merged = os.environ.copy()
+    if env:
+        merged.update(env)
+    subprocess.run(command, cwd=cwd, check=True, env=merged)
 
 
 def ensure_packaging_imports(python: str) -> None:
-    """Fail early if the packaging env is missing modules the frozen app needs."""
-    required = ("webview", "openpyxl", "python_calamine", "dotenv")
+    required = ("webview", "openpyxl", "python_calamine", "dotenv", "nuitka")
     script = (
         "import importlib.util\n"
         f"missing=[m for m in {required!r} if importlib.util.find_spec(m) is None]\n"
@@ -52,9 +61,117 @@ def ensure_packaging_imports(python: str) -> None:
         )
 
 
+def nuitka_command(python: str) -> list[str]:
+    # Do NOT --include-package=webview: Nuitka's pywebview plugin owns that
+    # (forcing it causes Conflict ... webview.platforms.android).
+    #
+    # macOS: Cocoa/Foundation requires --mode=app (not plain --standalone).
+    # Windows: --standalone folder + pythonnet/WebView2.
+    if sys.platform == "darwin":
+        mode_opts = ["--mode=app"]
+    else:
+        mode_opts = ["--standalone"]
+
+    cmd = [
+        python,
+        "-m",
+        "nuitka",
+        *mode_opts,
+        "--assume-yes-for-downloads",
+        "--enable-plugin=pywebview",
+        f"--output-dir={DIST_DIR}",
+        f"--output-filename={OUT_NAME}",
+        "--include-package=pytool",
+        "--include-package=openpyxl",
+        "--include-package=python_calamine",
+        "--include-package-data=python_calamine",
+        "--include-package=dotenv",
+        "--include-package=dateutil",
+        f"--include-data-dir={UI_DIST}={Path('ui') / 'dist'}",
+        str(ENTRY),
+    ]
+    if sys.platform == "win32":
+        cmd.extend(
+            [
+                "--mingw64",
+                "--windows-console-mode=disable",
+                "--include-package-data=clr_loader",
+                "--include-package-data=pythonnet",
+                "--include-module=clr",
+            ]
+        )
+        if WINDOWS_ICON.is_file():
+            cmd.append(f"--windows-icon-from-ico={WINDOWS_ICON}")
+    return cmd
+
+
+def normalize_dist_layout() -> Path:
+    """Normalize Nuitka output to dist/pytool/ for CI and local use."""
+    dest = DIST_DIR / OUT_NAME
+
+    # macOS app bundle (Nuitka may name it after entry module, e.g. entry.app)
+    app_candidates = [
+        DIST_DIR / f"{OUT_NAME}.app",
+        DIST_DIR / "entry.app",
+        *sorted(DIST_DIR.glob("*.app"), key=lambda p: p.stat().st_mtime, reverse=True),
+    ]
+    for app_bundle in app_candidates:
+        if not app_bundle.is_dir():
+            continue
+        if dest.exists():
+            shutil.rmtree(dest)
+        if app_bundle.resolve() != dest.resolve():
+            app_bundle.rename(dest)
+        print(f"macOS app bundle: {dest}", flush=True)
+        return dest
+
+    candidates = [
+        DIST_DIR / f"{OUT_NAME}.dist",
+        DIST_DIR / "entry.dist",
+        DIST_DIR / "__main__.dist",
+        DIST_DIR / "pytool.dist",
+    ]
+    if not any(p.is_dir() for p in candidates):
+        found = sorted(
+            DIST_DIR.glob("*.dist"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        if found:
+            candidates.insert(0, found[0])
+
+    src = next((p for p in candidates if p.is_dir()), None)
+    if src is None:
+        raise RuntimeError(
+            f"Nuitka did not create a .dist/.app folder under {DIST_DIR}"
+        )
+
+    if dest.exists():
+        shutil.rmtree(dest)
+    if src.resolve() != dest.resolve():
+        src.rename(dest)
+
+    exe_name = f"{OUT_NAME}.exe" if sys.platform == "win32" else OUT_NAME
+    exe = dest / exe_name
+    if not exe.is_file():
+        pattern = "*.exe" if sys.platform == "win32" else "*"
+        alts = [
+            p for p in dest.glob(pattern)
+            if p.is_file() and os.access(p, os.X_OK)
+        ]
+        if not alts:
+            raise RuntimeError(f"Packaged executable missing under {dest}")
+        alts[0].rename(exe)
+    return dest
+
+
 def main() -> None:
     python = python_executable()
     ensure_packaging_imports(python)
+
+    # Make `import pytool` resolve during compile.
+    run([python, "-m", "pip", "install", "-e", "."], ROOT)
+
     yarn = shutil.which("yarn.cmd") or shutil.which("yarn")
     if yarn is None:
         raise RuntimeError("yarn is required to build the frontend before packaging.")
@@ -63,19 +180,13 @@ def main() -> None:
     if not UI_INDEX.is_file():
         raise RuntimeError(
             f"Frontend build did not create {UI_INDEX}. "
-            "Packaging stopped before PyInstaller was run."
+            "Packaging stopped before Nuitka was run."
         )
-    run(
-        [
-            python,
-            "-m",
-            "PyInstaller",
-            "--clean",
-            "--noconfirm",
-            str(SPEC),
-        ],
-        ROOT,
-    )
+
+    DIST_DIR.mkdir(parents=True, exist_ok=True)
+    run(nuitka_command(python), ROOT, env={"PYTHONPATH": str(ROOT / "src")})
+    out = normalize_dist_layout()
+    print(f"Packaged application: {out}", flush=True)
 
 
 if __name__ == "__main__":

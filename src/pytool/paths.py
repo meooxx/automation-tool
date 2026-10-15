@@ -7,7 +7,10 @@ from pathlib import Path
 
 
 def is_frozen() -> bool:
-    return bool(getattr(sys, "frozen", False))
+    # PyInstaller sets sys.frozen; Nuitka injects __compiled__ into modules.
+    if bool(getattr(sys, "frozen", False)):
+        return True
+    return "__compiled__" in globals()
 
 
 def app_root() -> Path:
@@ -18,6 +21,7 @@ def app_root() -> Path:
 
 def resource_dir() -> Path:
     if is_frozen():
+        # PyInstaller onefile uses _MEIPASS; Nuitka standalone uses exe dir.
         return Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
     return app_root()
 
