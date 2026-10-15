@@ -19,21 +19,31 @@ hiddenimports = [
     "pytool.win_motw",
     "webview",
     "webview.platforms",
-    "webview.platforms.edgechromium",
-    "webview.platforms.winforms",
     "webview.guilib",
     "openpyxl",
     "python_calamine",
     "dotenv",
-    "clr",
-    "clr_loader",
-    "pythonnet",
 ]
+
+if sys.platform == "win32":
+    hiddenimports += [
+        "webview.platforms.edgechromium",
+        "webview.platforms.winforms",
+        "clr",
+        "clr_loader",
+        "pythonnet",
+    ]
+elif sys.platform == "darwin":
+    hiddenimports += ["webview.platforms.cocoa"]
 
 if UI_DIST.is_dir():
     datas.append((str(UI_DIST), "ui/dist"))
 
-for package in ("webview", "python_calamine", "pythonnet", "clr_loader"):
+packages = ["webview", "python_calamine"]
+if sys.platform == "win32":
+    packages += ["pythonnet", "clr_loader"]
+
+for package in packages:
     try:
         pkg_datas, pkg_binaries, pkg_hidden = collect_all(package)
     except Exception:

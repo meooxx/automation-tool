@@ -1,111 +1,78 @@
-Automation Tool
+# Automation Tool
 
-buit for workflow automation at Georgian College
+Desktop app for processing
+Excel export, pick Lead Source columns, and generate a **Channel Performance**
+workbook.
+**Stack:** Python (`pywebview` + openpyxl / python-calamine) · React/Vite UI ·
+packaged with **PyInstaller** by default (optional **Nuitka**).
 
-## Build the packaged application
+---
 
-Run the packaging command from the repository root:
+## What it does
+
+1. Open a Master Report (`.xlsx`).
+2. Scan **Lead Source - Most Recent**; you choose which values become report columns.
+3. Unselected values → **Other**; empty → **Blank**.
+4. Apply mailable filters (when columns exist) and count **Total mailable** for the
+   selected month (Joined in that month).
+5. Write Channel Performance Excel to the chosen output folder.
+
+Settings live in `config/settings.json` (field mapping, mailable conditions, IC
+postal prefixes, selected Lead Sources, report directory).
+
+---
+
+## Requirements
+
+| | Development | End user (packaged app) |
+|--|-------------|-------------------------|
+| OS | macOS or Windows 10/11 | Same |
+| Python | 3.11+ | Not needed |
+| Node.js + Yarn | Yes (UI) | Not needed |
+| WebView | macOS WKWebView / Windows **WebView2** | Same (Windows needs WebView2 Runtime) |
+
+---
+
+## Development
+
+### 1. Clone and Python env
+
+**macOS**
 
 ```bash
-python scripts/build_package.py
+cd automation-tool
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e .
 ```
 
-The command builds the frontend first, verifies that
-`ui/pytool-ui/dist/client/index.html`
-exists, and only then runs Nuitka (standalone). If the frontend artifact is
-missing, packaging stops instead of producing an unusable application.
-
-The packaged application serves the frontend through a temporary HTTP server
-bound to `127.0.0.1` and opens that URL in pywebview. It does not load the
-frontend through `file://`. The server uses an ephemeral port and stops when
-the application window closes.
-
-For Windows builds, place the application icon at
-`assets/pytool.ico` before packaging. The icon is included in the `.exe` when
-that file exists. The Windows icon is optional on other platforms.
-
-## Windows requirements
-
-### Running the packaged application
-
-End users do not need Python, Node.js, npm, Yarn, pip, or the frontend
-dependencies. Distribute the complete Nuitka standalone folder (everything
-next to `pytool.exe`).
-
-The Windows build uses the Edge WebView2 runtime through pywebview. WebView2
-is normally included with Windows 11 and is also preinstalled on many current
-Windows 10 systems, but its presence is not guaranteed on every Windows
-installation (for example, older, enterprise-managed, or stripped-down
-systems). The installer or deployment process should check for WebView2 and
-install the Evergreen WebView2 Runtime when it is missing. The application
-should not assume that copying `pytool.exe` alone is sufficient.
-
-### Building from source on Windows
-
-Install:
-
-- Windows 10 or Windows 11;
-- Python 3.11 or the version used by the project;
-- Node.js LTS;
-- Corepack/Yarn;
-- WebView2 Runtime for testing the desktop application.
-
-Then run in PowerShell:
+**Windows (PowerShell)**
 
 ```powershell
+cd automation-tool
 py -3.11 -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install -e .
+```
 
+If PowerShell blocks `yarn.ps1` / `npm.ps1`, use `yarn.cmd` / `npm.cmd`.
+
+### 2. Frontend
+
+**macOS**
+
+```bash
 corepack enable
 corepack prepare yarn@stable --activate
-
-cd ui\pytool-ui
-yarn install # or yarn.cmd
-cd ..\..
-
-.venv\Scripts\python.exe scripts\build_package.py
+cd ui/pytool-ui
+yarn install
+yarn build          # production-style UI into dist/
+# or for hot reload:
+yarn dev            # typically http://localhost:3000
 ```
 
-The packaged application is created at:
-
-```text
-dist\pytool\pytool.exe
-```
-
-Node.js, Yarn, and the Python build dependencies are only required to build
-the application; they are not required on the end user's computer.
-
-The application stores settings next to the executable:
-
-```text
-<application directory>\config\settings.json
-```
-
-Source development uses the repository `config\settings.json` as well. The
-application directory must be writable by the current user; if an output
-directory is not writable, the application reports an error and asks the user
-to choose another directory.
-
-### Quick start from a Windows source checkout
-
-Open PowerShell in the repository root:
-
-```powershell
-cd C:\path\to\automation-tool
-```
-
-Create the virtual environment and install Python dependencies:
-
-```powershell
-# real installed python version
-# py -3.11, py -3.14 ....
-py -3.14 -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-Install the frontend dependencies and build the SSG frontend. Use the
-explicit `.cmd` commands on managed computers where PowerShell blocks
-`npm.ps1` or `yarn.ps1`:
+**Windows**
 
 ```powershell
 corepack.cmd enable
@@ -113,60 +80,123 @@ corepack.cmd prepare yarn@stable --activate
 cd ui\pytool-ui
 yarn.cmd install
 yarn.cmd build
-cd ..\..
+# or: yarn.cmd dev
 ```
 
-Run the source application:
+### 3. Run the app from source
+
+**Development UI (Vite):**
+
+```bash
+# terminal 1 — UI
+cd ui/pytool-ui && yarn dev
+
+# terminal 2 — Python (macOS, from repo root)
+export PYTHONPATH="$PWD/src"
+.venv/bin/python -m pytool development
+```
+
+```powershell
+# Windows — terminal 2 (repo root)
+$env:PYTHONPATH = "$PWD\src"
+.venv\Scripts\python.exe -m pytool development
+```
+
+`development` loads `UI_URL` (default `http://localhost:3000`).
+
+**Production-style local run** (built UI served by the app):
+
+```bash
+# after yarn build
+export PYTHONPATH="$PWD/src"
+.venv/bin/python -m pytool
+```
 
 ```powershell
 $env:PYTHONPATH = "$PWD\src"
 .venv\Scripts\python.exe -m pytool
 ```
 
-The source application uses the frontend URL configured by `UI_URL` (or
-`http://localhost:3000` by default when using the development environment).
-For a production-style local run, build the frontend first and start the
-Python application without the `development` argument.
+---
 
-### Build and run the Windows package
+## Packaging
 
-From the repository root, after installing the dependencies:
+Default packager is **PyInstaller** (faster). **Nuitka** remains available via a flag.
+
+### PyInstaller (default)
+
+```bash
+# macOS
+.venv/bin/python scripts/build_package.py
+# same as:
+.venv/bin/python scripts/build_package.py --packager pyinstaller
+```
 
 ```powershell
+# Windows
 .venv\Scripts\python.exe scripts\build_package.py
 ```
 
-The complete one-folder package is created at:
+Output:
 
 ```text
-dist\pytool\
-├── pytool.exe
-├── ui\dist\...
-└── (DLLs and package data next to the exe)
+dist/pytool/
+├── pytool          # or pytool.exe on Windows
+└── _internal/      # runtime, UI, DLLs — keep together
 ```
 
-Run it with:
+### Nuitka (optional, slower)
+
+```bash
+pip install -e ".[nuitka]"   # or: pip install 'nuitka>=2.5' ordered-set zstandard
+.venv/bin/python scripts/build_package.py --nuitka
+```
+
+| Platform | Nuitka mode | Notes |
+|----------|-------------|--------|
+| Windows | `--standalone` | MinGW downloaded by Nuitka; needs WebView2 at runtime |
+| macOS | `--mode=app` | Required for Cocoa / `Foundation` |
+
+Entry script: `packaging/entry.py`.
+
+Optional Windows icon: `assets/pytool.ico`.
+
+**Distribute the whole `dist/pytool` folder**, not only the executable.
+
+### Run packaged app
+
+**Windows**
 
 ```powershell
 dist\pytool\pytool.exe
 ```
 
-Keep the complete `dist\pytool` directory together. Do not copy only
-`pytool.exe`; the sibling files contain the runtime, pywebview / pythonnet
-bits, frontend files, and other required resources.
+Needs **WebView2 Runtime** (usually present on Win11 / many Win10 PCs).
 
-If the computer reports that `npm.ps1` or `yarn.ps1` cannot be loaded because
-script execution is disabled, use `npm.cmd` or `yarn.cmd` explicitly. This is
-a PowerShell policy issue, not a project error. WebView2 Runtime is normally
-available on Windows 11 and many Windows 10 systems, but the target computer
-must have it installed for the packaged desktop application.
+If the zip was **downloaded** (e.g. GitHub Actions) and startup fails on
+`Python.Runtime.dll` / pythonnet, unblock then retry:
 
-## Windows release process
+```powershell
+Get-ChildItem -Recurse .\pytool | Unblock-File
+```
 
-Pushes to `dev` create a test Artifact. Version tags create both the Windows
-Artifact and a GitHub Release with the ZIP attached.
+(The app also clears Mark-of-the-Web on startup.)
 
-Create a release from the branch you want to publish:
+**macOS**
+
+```bash
+dist/pytool/pytool
+# or open the app if you wrap it later
+```
+
+First launch of an unsigned download may need **System Settings → Privacy & Security**.
+
+---
+
+## GitHub Actions (Windows release)
+
+- Push to `dev` → Windows artifact zip  
+- Tag `vMAJOR.MINOR.PATCH` → artifact + GitHub Release  
 
 ```bash
 git switch dev
@@ -175,12 +205,28 @@ git tag -a v0.1.0 -m "Release v0.1.0"
 git push origin v0.1.0
 ```
 
-Tags must use the `vMAJOR.MINOR.PATCH` format, for example `v0.1.0`.
-GitHub Actions then builds the Windows package and publishes:
+Artifact name example: `pytool-windows-x64-v0.1.0.zip`.
+
+CI builds on `windows-latest`. Package on a Mac with the same
+`scripts/build_package.py` when you need a macOS build.
+
+---
+
+## Project layout (short)
 
 ```text
-pytool-windows-x64-v0.1.0.zip
+src/pytool/          Python app (webview, Excel read/write, JS API)
+ui/pytool-ui/        React UI
+config/              settings.json
+scripts/build_package.py
+pytool.spec          PyInstaller spec
+data/                sample Master files (local testing)
 ```
 
-The release is created only after the Windows build and package verification
-steps succeed. If the build fails, no release is published.
+---
+
+## Notes
+
+- Master reads use **python-calamine** (fast); report writes use **openpyxl**.
+- Config and logs are written under the app directory; that folder must be writable.
+- Prefer shipping the full `dist/pytool` directory to end users.
