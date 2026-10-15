@@ -41,8 +41,7 @@ jobs:
         run: |
           python -m pip install -U pip
           python -m pip install -r requirements.txt
-          python -m pip install -e .
-          python -c "import webview, openpyxl, python_calamine, nuitka; print('runtime ok')"
+          python -c "import webview, openpyxl, python_calamine, PyInstaller; print('runtime ok')"
 
       - name: Install frontend dependencies
         shell: pwsh
@@ -51,7 +50,6 @@ jobs:
 
       - name: Build application
         shell: pwsh
-        timeout-minutes: 120
         run: python scripts/build_package.py
 
       - name: Verify package
@@ -60,25 +58,25 @@ jobs:
           if (-not (Test-Path "dist/pytool/pytool.exe")) {
             throw "Packaged executable was not created."
           }
-          $ui = @(
-            "dist/pytool/ui/dist/client/index.html",
-            "dist/pytool/_internal/ui/dist/client/index.html"
-          ) | Where-Object { Test-Path $_ }
-          if (-not $ui) {
+          if (-not (Test-Path "dist/pytool/_internal/ui/dist/client/index.html")) {
             throw "Packaged frontend entry was not created."
           }
-          Write-Host "Frontend entry: $($ui[0])"
 
-      - name: Create distributable archive
-        shell: pwsh
-        run: Compress-Archive -Path dist/pytool -DestinationPath "dist/pytool-windows-x64-${{ github.ref_name }}.zip"
-
+      # Upload the folder itself (not a zip-of-a-zip). Downloading the
+      # artifact unpacks once to: <artifact-name>/pytool.exe + _internal/
       - name: Upload Windows package
         uses: actions/upload-artifact@v5
         with:
           name: pytool-windows-x64-${{ github.ref_name }}
-          path: dist/pytool-windows-x64-${{ github.ref_name }}.zip
+          path: dist/pytool
           if-no-files-found: error
+
+      # Release attachment: one zip whose top level is a single "pytool" folder.
+      - name: Create release archive
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/pytool -DestinationPath "dist/pytool-windows-x64-${{ github.ref_name }}.zip"
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')

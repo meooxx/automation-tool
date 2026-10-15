@@ -6,9 +6,10 @@ python-calamine>=0.8
 python-dateutil>=2.9
 pywin32>=306; sys_platform == "win32"
 
-# Build / test
-nuitka>=2.5
-ordered-set>=4.1
-zstandard>=0.22
+# Build / test — default packager
+pyinstaller==6.22.3
 pytest==9.1.1
 pillow==12.3.0
+
+# Optional packager (pip install -r requirements.txt && pip install 'nuitka>=2.5' ordered-set zstandard)
+# Or: pip install -e ".[nuitka]"

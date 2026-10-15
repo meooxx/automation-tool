@@ -1,7 +1,12 @@
-"""Build frontend, then package the desktop app with Nuitka (standalone)."""
+"""Build frontend, then package the desktop app.
+
+Default packager: PyInstaller (fast).
+Optional: Nuitka via --nuitka (slower; macOS uses --mode=app).
+"""
 
 from __future__ import annotations
 
+import argparse
 import os
 import shutil
 import subprocess
@@ -13,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 UI_DIR = ROOT / "ui" / "pytool-ui"
 UI_INDEX = UI_DIR / "dist" / "client" / "index.html"
 UI_DIST = UI_DIR / "dist"
+SPEC = ROOT / "pytool.spec"
 ENTRY = ROOT / "packaging" / "entry.py"
 WINDOWS_ICON = ROOT / "assets" / "pytool.ico"
 DIST_DIR = ROOT / "dist"
@@ -40,8 +46,12 @@ def run(command: list[str], cwd: Path, env: dict | None = None) -> None:
     subprocess.run(command, cwd=cwd, check=True, env=merged)
 
 
-def ensure_packaging_imports(python: str) -> None:
-    required = ("webview", "openpyxl", "python_calamine", "dotenv", "nuitka")
+def ensure_packaging_imports(python: str, packager: str) -> None:
+    required = ["webview", "openpyxl", "python_calamine", "dotenv"]
+    if packager == "pyinstaller":
+        required.append("PyInstaller")
+    else:
+        required.append("nuitka")
     script = (
         "import importlib.util\n"
         f"missing=[m for m in {required!r} if importlib.util.find_spec(m) is None]\n"
@@ -58,15 +68,43 @@ def ensure_packaging_imports(python: str) -> None:
         raise RuntimeError(
             "Packaging environment is missing required modules: "
             f"{missing}. Install with: pip install -r requirements.txt"
+            + ("[nuitka]" if packager == "nuitka" else "")
         )
 
 
+def build_frontend() -> None:
+    yarn = shutil.which("yarn.cmd") or shutil.which("yarn")
+    if yarn is None:
+        raise RuntimeError("yarn is required to build the frontend before packaging.")
+    run([yarn], UI_DIR)
+    run([yarn, "run", "build"], UI_DIR)
+    if not UI_INDEX.is_file():
+        raise RuntimeError(
+            f"Frontend build did not create {UI_INDEX}. Packaging stopped."
+        )
+
+
+def package_pyinstaller(python: str) -> Path:
+    run(
+        [
+            python,
+            "-m",
+            "PyInstaller",
+            "--clean",
+            "--noconfirm",
+            str(SPEC),
+        ],
+        ROOT,
+    )
+    out = DIST_DIR / OUT_NAME
+    print(f"Packaged application (PyInstaller): {out}", flush=True)
+    return out
+
+
 def nuitka_command(python: str) -> list[str]:
-    # Do NOT --include-package=webview: Nuitka's pywebview plugin owns that
-    # (forcing it causes Conflict ... webview.platforms.android).
-    #
-    # macOS: Cocoa/Foundation requires --mode=app (not plain --standalone).
-    # Windows: --standalone folder + pythonnet/WebView2.
+    # Do NOT --include-package=webview (conflicts with Nuitka pywebview plugin).
+    # macOS: Cocoa/Foundation requires --mode=app.
+    # Windows: --standalone + pythonnet/WebView2.
     if sys.platform == "darwin":
         mode_opts = ["--mode=app"]
     else:
@@ -105,11 +143,9 @@ def nuitka_command(python: str) -> list[str]:
     return cmd
 
 
-def normalize_dist_layout() -> Path:
-    """Normalize Nuitka output to dist/pytool/ for CI and local use."""
+def normalize_nuitka_dist() -> Path:
     dest = DIST_DIR / OUT_NAME
 
-    # macOS app bundle (Nuitka may name it after entry module, e.g. entry.app)
     app_candidates = [
         DIST_DIR / f"{OUT_NAME}.app",
         DIST_DIR / "entry.app",
@@ -162,31 +198,43 @@ def normalize_dist_layout() -> Path:
         if not alts:
             raise RuntimeError(f"Packaged executable missing under {dest}")
         alts[0].rename(exe)
+    print(f"Packaged application (Nuitka): {dest}", flush=True)
     return dest
 
 
-def main() -> None:
-    python = python_executable()
-    ensure_packaging_imports(python)
-
-    # Make `import pytool` resolve during compile.
+def package_nuitka(python: str) -> Path:
+    if not ENTRY.is_file():
+        raise RuntimeError(f"Nuitka entry missing: {ENTRY}")
     run([python, "-m", "pip", "install", "-e", "."], ROOT)
-
-    yarn = shutil.which("yarn.cmd") or shutil.which("yarn")
-    if yarn is None:
-        raise RuntimeError("yarn is required to build the frontend before packaging.")
-    run([yarn], UI_DIR)
-    run([yarn, "run", "build"], UI_DIR)
-    if not UI_INDEX.is_file():
-        raise RuntimeError(
-            f"Frontend build did not create {UI_INDEX}. "
-            "Packaging stopped before Nuitka was run."
-        )
-
     DIST_DIR.mkdir(parents=True, exist_ok=True)
     run(nuitka_command(python), ROOT, env={"PYTHONPATH": str(ROOT / "src")})
-    out = normalize_dist_layout()
-    print(f"Packaged application: {out}", flush=True)
+    return normalize_nuitka_dist()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Build UI and package desktop app.")
+    parser.add_argument(
+        "--nuitka",
+        action="store_true",
+        help="Use Nuitka instead of PyInstaller (slower).",
+    )
+    parser.add_argument(
+        "--packager",
+        choices=("pyinstaller", "nuitka"),
+        default=None,
+        help="Packager to use (default: pyinstaller).",
+    )
+    args = parser.parse_args()
+    packager = args.packager or ("nuitka" if args.nuitka else "pyinstaller")
+
+    python = python_executable()
+    ensure_packaging_imports(python, packager)
+    build_frontend()
+
+    if packager == "nuitka":
+        package_nuitka(python)
+    else:
+        package_pyinstaller(python)
 
 
 if __name__ == "__main__":
