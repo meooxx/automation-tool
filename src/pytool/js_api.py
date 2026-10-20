@@ -296,7 +296,7 @@ class JSAPI:
         step = "validate input"
         if self._logs is not None:
             self._logs.clear()
-        self._push_log("Starting report processing", icon="processing")
+        # self._push_log("Starting report processing", icon="processing")
         try:
             if source_file is None:
                 raise ValueError("Source file path is not set.")
@@ -309,7 +309,7 @@ class JSAPI:
             outdir_path.mkdir(parents=True, exist_ok=True)
             current_date = datetime.strptime(current_month, "%Y-%m")
             prior_date = datetime.strptime(prior_month, "%Y-%m")
-            self._push_log(step, icon="processing")
+            # self._push_log(step, icon="processing")
             def on_row_error(err_step, row_no, row, err):
                 try:
                     data = json.dumps(row, default=str, ensure_ascii=False)
@@ -319,7 +319,7 @@ class JSAPI:
                              err_step, row_no, err, data)
 
             step = "read source"
-            self._push_log(step, icon="processing")
+            # self._push_log(step, icon="processing")
             originData = read_source_data(
                 source_file,
                 current_date,
@@ -348,7 +348,7 @@ class JSAPI:
             year = current_date.year
             month = current_date.strftime("%m")
             headers = originData["headers"]
-            self._push_log(step, icon="processing")
+            # self._push_log(step, icon="processing")
             step = "write Direct IC"
             _write_workbook(
                 outdir_path /
@@ -357,7 +357,7 @@ class JSAPI:
                 headers,
                 current["direct_ic"],
             )
-            self._push_log("Finished Direct IC")
+            # self._push_log("Finished Direct IC")
             step = "write Direct OOC"
             _write_workbook(
                 outdir_path /
@@ -366,7 +366,7 @@ class JSAPI:
                 headers,
                 current["direct_ooc"],
             )
-            self._push_log("Finished Direct OOC")
+            # self._push_log("Finished Direct OOC")
             step = "write NonDirect IC"
             _write_workbook(
                 outdir_path /
@@ -375,7 +375,7 @@ class JSAPI:
                 headers,
                 current["non_direct_ic"],
             )
-            self._push_log("Finished NonDirect IC")
+            # self._push_log("Finished NonDirect IC")
             step = "write NonDirect OOC"
             _write_workbook(
                 outdir_path /
@@ -384,7 +384,7 @@ class JSAPI:
                 headers,
                 current["non_direct_ooc"],
             )
-            self._push_log("Finished NonDirect OOC")
+            # self._push_log("Finished NonDirect OOC")
             step = "write Channel Performance"
             report = write_channel_performance(
                 outdir_path /
@@ -402,7 +402,7 @@ class JSAPI:
                 prospect_id_index=filtered["prospect_id_index"],
                 lead_categories=filtered["lead_categories"],
             )
-            self._push_log("Finished Channel Performance")
+            # self._push_log("Finished Channel Performance")
             self._push_log("Finished processing report",
                            icon="success", path=str(outdir_path))
             return str(report)

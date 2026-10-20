@@ -36,13 +36,13 @@ const reducer = (state: Item[], action: Action) => {
 
 export default function PyLog() {
 	const [logs, dispatch] = useReducer<Item[], [Action]>(reducer, [
-		{
-			content: 'Application ui loaded',
-			timestamp: dayjs().format('HH:mm'),
-			icon: 'success',
-			id: Math.random().toString(36).substring(2, 9)
-			// path: '~'
-		}
+		// {
+		// 	content: 'Application ui loaded',
+		// 	timestamp: dayjs().format('HH:mm'),
+		// 	icon: 'success',
+		// 	id: Math.random().toString(36).substring(2, 9)
+		// 	// path: '~'
+		// }
 	]);
 	const handleOpen = (path: string) => {
 		window.pywebview?.api?.open_dir(path);
