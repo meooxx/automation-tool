@@ -7,7 +7,8 @@ import {
 	Form,
 	Input,
 	type ModalProps,
-	Typography
+	Typography,
+	Tooltip
 } from 'antd';
 import { createContext, useState, useMemo, useContext } from 'react';
 import type {
@@ -28,7 +29,7 @@ import {
 	verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { HolderOutlined } from '@ant-design/icons';
+import { HolderOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import type { FC } from 'react';
 import { useTransition } from 'react';
 interface RowContextProps {
@@ -262,7 +263,7 @@ export function SourceSelect(props: {
 				</Form.List>
 			</Modal>
 			<Row align="middle" justify="space-between">
-				<Col span={20}>
+				<Col span={19}>
 					<Select
 						value={props.sources.map(source => source.value)}
 						mode="multiple"
@@ -275,14 +276,16 @@ export function SourceSelect(props: {
 					></Select>
 				</Col>
 
-				<Col span={3}>
-					<Button
-						disabled={props.sources.length === 0 || props.disabled}
-						onClick={() => setOpen(true)}
-						type="default"
-					>
-						adv
-					</Button>
+				<Col span={4}>
+					<Tooltip title="Use the Adv button to sort or merge sources into one column (e.g., use 'careermatch' to group 'careermatch' and 'career-match')">
+						<Button
+							disabled={props.sources.length === 0 || props.disabled}
+							onClick={() => setOpen(true)}
+							type="default"
+						>
+							adv <InfoCircleOutlined style={{ marginLeft: '4px' }} />
+						</Button>
+					</Tooltip>
 				</Col>
 			</Row>
 		</>

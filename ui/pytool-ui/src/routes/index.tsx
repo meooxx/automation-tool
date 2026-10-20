@@ -275,7 +275,7 @@ function Home() {
 			{contextHolder}
 			<div style={{ padding: '16px', width: '100%' }}>
 				<Row gutter={8}>
-					<Col sm={12} lg={12}>
+					<Col sm={14} lg={14}>
 						<Card>
 							<Form
 								initialValues={{
@@ -335,12 +335,7 @@ function Home() {
 											}
 										})
 									]}
-									label={
-										<Tooltip title="you can then sort or aggregate several sources to one column using adv button. for example, you can use 'careermatch' to include 'careermatch' and 'career-match' to one source.">
-											Src
-											<InfoCircleOutlined style={{ marginLeft: '4px' }} />
-										</Tooltip>
-									}
+									label={'Src'}
 								>
 									<SourceSelect
 										disabled={leadSources.length === 0}
@@ -369,7 +364,7 @@ function Home() {
 							</Link>
 						</Card>
 					</Col>
-					<Col sm={12} lg={12}>
+					<Col sm={10} lg={10}>
 						<Card
 							actions={[
 								<Flex vertical gap={4}>

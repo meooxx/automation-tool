@@ -293,7 +293,7 @@ function Config() {
 					These rules determine Direct/Non-direct and IC/OOC classification in
 					the next report.
 				</Typography.Paragraph>
-				<Card
+				{/* <Card
 					title="Manual settings file"
 					size="small"
 					style={{ marginBottom: 16 }}
@@ -316,7 +316,7 @@ function Config() {
 						You can edit this JSON file manually. Reopen or refresh this page to
 						load the latest values.
 					</Typography.Paragraph>
-				</Card>
+				</Card> */}
 				<Card
 					title="Direct applicant types"
 					size="small"
@@ -326,13 +326,14 @@ function Config() {
 					{displayValues(rules.direct_applicant_types)}
 				</Card>
 				<Card
-					title="IC ZIP prefixes"
+					title="IC Postal Code prefixes"
 					size="small"
+					style={{ marginBottom: 16 }}
 					extra={<Button onClick={() => openEditor('zip')}>Edit</Button>}
 				>
 					{displayValues(rules.ic_postal_prefixes)}
 				</Card>
-				<Card title="Mailable rules" size="small" style={{ marginBottom: 16 }}>
+				{/* <Card title="Mailable rules" size="small" style={{ marginBottom: 16 }}>
 					<Space style={{ display: 'flex', justifyContent: 'space-between' }}>
 						<Typography.Text strong>Conditions</Typography.Text>
 						<Button
@@ -369,7 +370,7 @@ function Config() {
 						Each condition can be enabled, renamed, pointed at a field, and
 						configured with a matching mode and values.
 					</Typography.Paragraph>
-				</Card>
+				</Card> */}
 				<Card title="Field mapping" size="small">
 					{Object.entries(configuration?.field_mapping || {}).map(
 						([field, values]) => (
@@ -394,7 +395,7 @@ function Config() {
 						)
 					)}
 				</Card>
-				<Card title="Nurture list" size="small" style={{ marginTop: 16 }}>
+				{/* <Card title="Nurture list" size="small" style={{ marginTop: 16 }}>
 					<Switch
 						disabled={!configuration?.nurture?.file_path}
 						checked={configuration?.nurture?.enable}
@@ -448,7 +449,7 @@ function Config() {
 							Upload Excel list
 						</Button>
 					</Space>
-				</Card>
+				</Card> */}
 			</Card>
 			<Drawer
 				title="Edit Mailable conditions"
