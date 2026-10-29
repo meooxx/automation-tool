@@ -162,7 +162,7 @@ def read_source_data(
     leader_header=LEADER_HEADER,
     on_error=None,
 ) -> dict:
-    """Open `path`, keep rows whose Joined month matches each date."""
+    """Open `path`; split by Joined month and cumulative through each month."""
     path = Path(path)
     current_ym = year_month(current_date)
     prior_ym = year_month(prior_date)
@@ -188,6 +188,8 @@ def read_source_data(
 
     current = []
     prior = []
+    current_through = []
+    prior_through = []
     dated = []
     for excel_row, values in enumerate(sheet_rows[1:], start=2):
         try:
@@ -201,6 +203,10 @@ def read_source_data(
                     on_error("joined", excel_row, row, f"cannot parse Joined: {joined!r}")
                 continue
             dated.append(row)
+            if ym <= current_ym:
+                current_through.append(row)
+            if ym <= prior_ym:
+                prior_through.append(row)
             if ym == current_ym:
                 current.append(row)
             elif ym == prior_ym:
@@ -224,6 +230,9 @@ def read_source_data(
         "all": dated,
         "current": current,
         "prior": prior,
+        # Joined <= selected month (for Total mailable).
+        "current_through": current_through,
+        "prior_through": prior_through,
     }
 
 

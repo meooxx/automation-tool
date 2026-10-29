@@ -111,7 +111,7 @@ def mailable_count(
     mailable_conditions=None,
     nurture_values=None,
 ) -> int:
-    """Count unique mailable rows in the supplied month slice."""
+    """Count unique mailable rows in the supplied row set (month or cumulative)."""
     mapping = get_field_mapping()
     prospect_id_index = find_configured_header_index(
         headers, mapping["prospect_id"], PROSPECT_ID_HEADER
@@ -261,20 +261,24 @@ def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
 
     current = split(source["current"])
     prior = split(source["prior"])
+    # Master is already list-filtered (everyone is mailable).
+    # Total = cumulative unique (Joined <= month); New = that month only.
+    # Optional settings conditions / nurture still apply if enabled.
+    through_current = source.get("current_through", source["current"])
+    through_prior = source.get("prior_through", source["prior"])
     return {
         "current": current,
         "prior": prior,
         "lead_categories": categories,
-        # Total mailable = mailable among prospects who Joined that month only.
         "current_mailable": mailable_count(
-            source["current"],
+            through_current,
             headers,
             on_error,
             mailable_conditions,
             nurture_values,
         ),
         "prior_mailable": mailable_count(
-            source["prior"],
+            through_prior,
             headers,
             on_error,
             mailable_conditions,
