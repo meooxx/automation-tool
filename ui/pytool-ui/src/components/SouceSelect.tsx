@@ -104,6 +104,7 @@ export function SourceSelect(props: {
 	options: Source[];
 	onOk?: (Sources: Source[]) => void;
 	onChange?: (v: string, options?: Source | Source[]) => void;
+	onUpdateOptions?(): void;
 }) {
 	const [open, setOpen] = useState(false);
 	const [form] = Form.useForm<{ sources: Source[] }>();
@@ -123,6 +124,7 @@ export function SourceSelect(props: {
 			const values = form.getFieldsValue().sources || [];
 			props.onChange?.('', values);
 			await window.pywebview?.api?.save_source_headers(JSON.stringify(values));
+			props.onUpdateOptions?.();
 			setOpen(false);
 		});
 	};

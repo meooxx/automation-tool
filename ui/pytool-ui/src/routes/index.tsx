@@ -1,15 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import {
-	Card,
-	Row,
-	Col,
-	message,
-	DatePicker,
-	Button,
-	Form,
-	Flex,
-	Tooltip
-} from 'antd';
+import { Card, Row, Col, message, DatePicker, Button, Form, Flex } from 'antd';
 import type { CardProps } from 'antd';
 
 import PyUpload from '../components/PyUpload';
@@ -19,7 +9,6 @@ import dayjs from 'dayjs';
 import DirPicker from '../components/PyDirPicker';
 import LogDir from '../components/LogDir';
 import { SourceSelect, type Source } from '../components/SouceSelect';
-import { InfoCircleOutlined } from '@ant-design/icons';
 import { useEffectEvent } from 'react';
 export const Route = createFileRoute('/')({ component: InnerRoot });
 
@@ -34,10 +23,13 @@ declare global {
 				get_file_path: () => Promise<string | null>;
 				get_master_headers: () => Promise<string[]>;
 				select_file: () => Promise<string | null>;
+				//@deprecated
+
 				select_nurture_file: () => Promise<{
 					file_path: string;
 					headers: string[];
 				} | null>;
+				//@deprecated
 				get_nurture_headers: () => Promise<string[]>;
 				select_file_and_get_lead_sources: () => Promise<{
 					file_path: string;
@@ -222,6 +214,26 @@ function Home() {
 			}))
 		);
 	};
+	const getUpdatedSources = async (): Promise<void> => {
+		await window.pywebview?.api
+			?.get_source_headers()
+			.then((sources: Source[]) => {
+				if (sources?.length > 0) {
+					setSelectedSources(
+						sources.map(source => ({
+							value: source.value,
+							label: source.label,
+							key: source.key,
+							alias: source.alias,
+							columnName: source.columnName
+						}))
+					);
+				}
+			});
+	};
+	const handleUpdateOptions = async () => {
+		getUpdatedSources();
+	};
 	// const handleSaveAdvancedSources = (sources: Source[]) => {
 	// 	setSelectedSources(sources);
 	// };
@@ -250,19 +262,7 @@ function Home() {
 		}
 	}, [curr]);
 	useEffect(() => {
-		window.pywebview?.api?.get_source_headers().then((sources: Source[]) => {
-			if (sources?.length > 0) {
-				setSelectedSources(
-					sources.map(source => ({
-						value: source.value,
-						label: source.label,
-						key: source.key,
-						alias: source.alias,
-						columnName: source.columnName
-					}))
-				);
-			}
-		});
+		getUpdatedSources();
 	}, []);
 	const cardStyles: CardProps['styles'] = {
 		body: {
@@ -342,6 +342,7 @@ function Home() {
 										sources={selectedSources}
 										onChange={handleSelectedSourcesChange}
 										options={leadSources}
+										onUpdateOptions={handleUpdateOptions}
 										// onOk={handleSaveAdvancedSources}
 									/>
 								</Form.Item>
