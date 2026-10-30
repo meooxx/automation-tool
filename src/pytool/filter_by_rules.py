@@ -15,10 +15,10 @@ from pytool.read_source_data import find_configured_header_index
 from pytool.settings import (
     get_classification_rules,
     get_field_mapping,
-    get_mailable_conditions,
     get_nurture_config,
 )
-from pytool.nurture import load_nurture_values
+
+
 def get_cell(row: list, index: int) -> str:
     if index < 0 or index >= len(row) or row[index] is None:
         return ""
@@ -245,8 +245,6 @@ def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
 
     categories = lead_categories(selected_sources)
     classification_rules = get_classification_rules()
-    mailable_conditions = get_mailable_conditions()
-    nurture_values = load_nurture_values()
     prospect_id_index = find_configured_header_index(
         headers, mapping["prospect_id"], PROSPECT_ID_HEADER
     )
@@ -261,29 +259,16 @@ def filter_by_rules(source: dict, on_error=None, selected_sources=None) -> dict:
 
     current = split(source["current"])
     prior = split(source["prior"])
-    # Master is already list-filtered (everyone is mailable).
+    # Master is already list-filtered: no second mailable pass.
     # Total = cumulative unique (Joined <= month); New = that month only.
-    # Optional settings conditions / nurture still apply if enabled.
     through_current = source.get("current_through", source["current"])
     through_prior = source.get("prior_through", source["prior"])
     return {
         "current": current,
         "prior": prior,
         "lead_categories": categories,
-        "current_mailable": mailable_count(
-            through_current,
-            headers,
-            on_error,
-            mailable_conditions,
-            nurture_values,
-        ),
-        "prior_mailable": mailable_count(
-            through_prior,
-            headers,
-            on_error,
-            mailable_conditions,
-            nurture_values,
-        ),
+        "current_mailable": unique_count(through_current, prospect_id_index),
+        "prior_mailable": unique_count(through_prior, prospect_id_index),
         "new_this_month": unique_count(source["current"], prospect_id_index),
         "new_prior_month": unique_count(source["prior"], prospect_id_index),
         "prospect_id_index": prospect_id_index,

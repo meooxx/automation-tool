@@ -13,9 +13,9 @@ packaged with **PyInstaller** by default (optional **Nuitka**).
 1. Open a Master Report (`.xlsx`).
 2. Scan **Lead Source - Most Recent**; you choose which values become report columns.
 3. Unselected values → **Other**; empty → **Blank**.
-4. Master is treated as already list-filtered. **Total mailable** = unique Prospect
-   Id with Joined ≤ selected month; **New this month** = Joined in that month only.
-   Settings mailable conditions are optional extras (off by default).
+4. Master is already list-filtered (no second mailable pass). **Total mailable** =
+   unique Prospect Id with Joined ≤ selected month; **New this month** = Joined
+   in that month only.
 5. Write Channel Performance Excel to the chosen output folder.
 
 Settings live in `config/settings.json` (field mapping, mailable conditions, IC
