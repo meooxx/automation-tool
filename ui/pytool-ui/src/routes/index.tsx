@@ -199,20 +199,23 @@ function Home() {
 	);
 	const disabled =
 		curr === null || filepath === null || selectedSources.length === 0;
-	const handleSelectedSourcesChange = (
-		_: string,
-		options?: Source | Source[]
-	) => {
-		if (!Array.isArray(options)) return;
+	const handleSelectedSourcesChange = (v: string[]) => {
+		if (v.length === 0) {
+			setSelectedSources([]);
+			return;
+		}
+		const selectedSet = new Set(v);
 		setSelectedSources(
-			options.map(option => ({
-				value: option.value,
-				label: option.label,
-				key: option.key,
-				alias: option.alias,
-				columnName: option.columnName
-			}))
+			selectedSources
+				.filter(source => {
+					if (selectedSet.has(source.value)) {
+						selectedSet.delete(source.value);
+						return true;
+					}
+				})
+				.concat(leadSources.filter(source => selectedSet.has(source.value)))
 		);
+		// setSelectedSources((options as [Source]) ?? []);
 	};
 	const getUpdatedSources = async (): Promise<void> => {
 		await window.pywebview?.api

@@ -103,7 +103,7 @@ export function SourceSelect(props: {
 	sources: Source[];
 	options: Source[];
 	onOk?: (Sources: Source[]) => void;
-	onChange?: (v: string, options?: Source | Source[]) => void;
+	onChange?: (v: string[], options?: Source | Source[]) => void;
 	onUpdateOptions?(): void;
 }) {
 	const [open, setOpen] = useState(false);
@@ -122,7 +122,6 @@ export function SourceSelect(props: {
 	const handleOk = async () => {
 		startTransition(async () => {
 			const values = form.getFieldsValue().sources || [];
-			props.onChange?.('', values);
 			await window.pywebview?.api?.save_source_headers(JSON.stringify(values));
 			props.onUpdateOptions?.();
 			setOpen(false);
@@ -141,7 +140,6 @@ export function SourceSelect(props: {
 			});
 		}
 	};
-
 	return (
 		<>
 			<Modal
@@ -207,6 +205,16 @@ export function SourceSelect(props: {
 									items={fields.map(field => field.key)}
 									strategy={verticalListSortingStrategy}
 								>
+									<Row
+										gutter={8}
+										align="middle"
+										style={{ marginBottom: '18px' }}
+									>
+										<Col span={1}></Col>
+										<Col span={6}>selected</Col>
+										<Col span={6}>column name</Col>
+										<Col span={6}>lead source</Col>
+									</Row>
 									{fields.map(({ key, name, ...restField }) => (
 										<SortableItem key={key} id={key}>
 											<Form.Item noStyle name={[name, 'label']}></Form.Item>
@@ -218,10 +226,15 @@ export function SourceSelect(props: {
 												align="middle"
 												style={{ marginBottom: '18px' }}
 											>
-												<Col span={2}>
+												<Col span={1} style={{ marginBottom: '26px' }}>
 													<DragHandle />
 												</Col>
-												<Col span={11}>
+												<Col span={6}>
+													<Form.Item name={[name, 'value']}>
+														<Input placeholder="value" disabled />
+													</Form.Item>
+												</Col>
+												<Col span={6}>
 													<Form.Item
 														{...restField}
 														name={[name, 'columnName']}
@@ -235,7 +248,7 @@ export function SourceSelect(props: {
 														<Input placeholder="column name in report" />
 													</Form.Item>
 												</Col>
-												<Col span={11}>
+												<Col span={8}>
 													<Form.Item
 														name={[name, 'alias']}
 														rules={[
@@ -272,7 +285,7 @@ export function SourceSelect(props: {
 						showSearch
 						placeholder="Please select sources"
 						style={{ width: '100%' }}
-						onChange={props.onChange}
+						onChange={v => props.onChange?.(v)}
 						options={props.options}
 						disabled={props.disabled}
 					></Select>
