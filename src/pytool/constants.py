@@ -121,12 +121,7 @@ DEFAULT_FIELD_MAPPING = {
     "prospect_id": ["Prospect Id"],
     "zip": ["Zip"],
     "applicant_type": ["OH Applicant Type"],
-    "georgian_id": ["Georgian ID"],
-    "deceased": ["Deceased"],
-    "email_bounced": ["Email Bounced"],
-    "email_opt_in": ["Email Opt In"],
-    "email_opted_out": ["Opted Out"],
-    "future_students_updates": ["Updates for future students"],
+    
 }
 
 DEFAULT_NURTURE_CONFIG = {
